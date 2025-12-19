@@ -11,11 +11,11 @@ type Instance struct {
 	UpdatedAt time.Time      `gorm:"not null;autoUpdateTime"`
 	Status    InstanceStatus `gorm:"not null;type:string"`
 
-	IP net.IP `gorm:"uniqueIndex"`
+	IP net.IP `gorm:"type:string;uniqueIndex"`
 }
 
 // InstanceStatus
-// ENUM(CREATING, RUNNING, DELETED)
+// ENUM(Creating, Running, Deleted)
 //
 //go:generate go tool go-enum --sql --marshal -f models.go
 type InstanceStatus int

@@ -76,6 +76,8 @@ github.com/teadove/teasutils/service_utils v0.1.0 h1:0Suabr1UTE5GxlfOS30va0XWg5k
 github.com/teadove/teasutils/service_utils v0.1.0/go.mod h1:tSjSah7LutEfB+S4J8cP/ai4Abe/dHZsDYZ40LmKYec=
 github.com/teadove/teasutils/utils v0.3.0 h1:j+TR0Li5+bjmHfT0XSBXWgBHKtOWkZ9hNGhmVf5fADM=
 github.com/teadove/teasutils/utils v0.3.0/go.mod h1:yO2qli6FDkV2kWgHAuovtuZ8oiq8F+cIoZ1smSFgI4U=
+github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569 h1:xzABM9let0HLLqFypcxvLmlvEciCHL7+Lv+4vwZqecI=
+github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569/go.mod h1:2Ly+NIftZN4de9zRmENdYbvPQeaVIYKWpLFStLFEBgI=
 github.com/urfave/cli/v2 v2.27.7 h1:bH59vdhbjLv3LAvIu6gd0usJHgoTTPhCFib8qqOwXYU=
 github.com/urfave/cli/v2 v2.27.7/go.mod h1:CyNAG/xg+iAOg0N4MPGZqVmv2rCoP267496AOXUZjA4=
 github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 h1:gEOO8jv9F4OT7lGCjxCBTO/36wtF6j2nSip77qHd4x4=
