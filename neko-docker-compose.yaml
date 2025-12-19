@@ -1,0 +1,24 @@
+services:
+  neko:
+    image: "ghcr.io/m1k1o/neko/firefox:3.0.9"
+    restart: "unless-stopped"
+    shm_size: "4gb"
+    ports:
+      - "80:8080"
+      - "59200-59300:59200-59300/udp"
+    cap_add:
+      - SYS_ADMIN
+    environment:
+      NEKO_MEMBER_PROVIDER: multiuser
+      NEKO_MEMBER_MULTIUSER_USER_PASSWORD: neko
+      NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: admin
+
+      NEKO_DESKTOP_SCREEN: '1920x1080@30'
+      NEKO_WEBRTC_EPR: 59200-59300
+      NEKO_FILE_TRANSFER_ENABLED: "true"
+
+      NEKO_SERVER_METRICS: true
+
+      NEKO_SESSION_IMPLICIT_HOSTING: true
+      NEKO_SESSION_HEARTBEAT_INTERVAL: 120
+      NEKO_SESSION_MERCIFUL_RECONNECT: true
