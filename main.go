@@ -5,8 +5,11 @@ import (
 	"neko-manager/pkg/cloudsupplier"
 	"neko-manager/pkg/instancerepo"
 	"neko-manager/pkg/managerservice"
+	"neko-manager/pkg/nekosupplier"
 	"neko-manager/pkg/settings"
 	"neko-manager/pkg/tgbotpresentation"
+	"net/http"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/teadove/teasutils/service_utils/db_utils"
@@ -72,7 +75,9 @@ func build(ctx context.Context) (*Container, error) {
 		return nil, errors.Wrap(err, "new terx bot")
 	}
 
-	managerService := managerservice.New(instanceRepo, cloudSupplier, terxBot)
+	nekoSupplier := nekosupplier.New(&http.Client{Timeout: time.Second * 5})
+
+	managerService := managerservice.New(instanceRepo, cloudSupplier, terxBot, nekoSupplier)
 
 	tgBotPresentation := tgbotpresentation.New(managerService, terxBot)
 
@@ -87,7 +92,10 @@ func main() {
 		panic(errors.Wrap(err, "build"))
 	}
 
-	go container.ManagerService.Reconciliation(ctx)
+	err = container.ManagerService.Reconciliation(ctx)
+	if err != nil {
+		panic(errors.Wrap(err, "reconciliation"))
+	}
 
 	container.TGBotPresentation.Run()
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 
 	"gorm.io/gorm"
 )
@@ -22,7 +23,18 @@ func (r *Repo) SaveInstance(ctx context.Context, instance *Instance) error {
 		return errors.Wrap(err, "save instance")
 	}
 
+	zerolog.Ctx(ctx).Info().Object("instance", instance).Msg("instance.saved")
+
 	return nil
+}
+
+func (r *Repo) GetInstance(ctx context.Context, id string) (*Instance, error) {
+	instance, err := gorm.G[Instance](r.db).Where("id = ?", id).First(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "list active instances")
+	}
+
+	return &instance, nil
 }
 
 func (r *Repo) ListActiveInstances(ctx context.Context) ([]Instance, error) {

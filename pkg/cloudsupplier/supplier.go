@@ -2,6 +2,8 @@ package cloudsupplier
 
 import (
 	"context"
+	_ "embed"
+	"text/template"
 
 	"github.com/pkg/errors"
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/vpc/v1"
@@ -21,6 +23,8 @@ type Supplier struct {
 
 	sshPublicKey string
 	sshUsername  string
+
+	nekoDockerComposeTemplate *template.Template
 }
 
 func New(
@@ -46,8 +50,16 @@ func New(
 		return nil, errors.Wrap(err, "get default subnets")
 	}
 
+	r.nekoDockerComposeTemplate, err = template.New("neko-docker-compose").Parse(nekoDockerCompose)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse neko template")
+	}
+
 	return r, nil
 }
+
+//go:embed neko-docker-compose.yaml
+var nekoDockerCompose string
 
 func (r *Supplier) getDefaultNetworks(ctx context.Context) (string, error) {
 	networkSDK := vpcsdk.NewNetworkClient(r.sdk)

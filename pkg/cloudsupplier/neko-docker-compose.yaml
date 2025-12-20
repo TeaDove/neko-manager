@@ -1,6 +1,6 @@
 services:
   neko:
-    image: "ghcr.io/m1k1o/neko/firefox:3.0.9"
+    image: "ghcr.io/m1k1o/neko/firefox:latest"
     restart: "unless-stopped"
 #    shm_size: "4gb"
     ports:
@@ -12,6 +12,7 @@ services:
       NEKO_MEMBER_PROVIDER: multiuser
       NEKO_MEMBER_MULTIUSER_USER_PASSWORD: neko
       NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: admin
+      NEKO_SESSION_API_TOKEN: "{{ .sessionAPIToken }}"
 
       NEKO_DESKTOP_SCREEN: '1920x1080@30'
       NEKO_WEBRTC_EPR: 59200-59300

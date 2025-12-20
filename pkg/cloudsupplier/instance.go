@@ -1,6 +1,7 @@
 package cloudsupplier
 
 import (
+	bytes "bytes"
 	"context"
 	_ "embed"
 	"fmt"
@@ -12,14 +13,26 @@ import (
 	computesdk "github.com/yandex-cloud/go-sdk/services/compute/v1"
 )
 
-func (r *Supplier) ComputeCreate(ctx context.Context, name string, createdBy string) error {
+func (r *Supplier) ComputeCreate(
+	ctx context.Context,
+	name string,
+	createdBy string,
+	sessionAPIToken string,
+) (string, error) {
 	latestImageResp, err := computesdk.NewImageClient(r.sdk).
 		GetLatestByFamily(ctx, &compute.GetImageLatestByFamilyRequest{
 			FolderId: "yc.container-solution",
 			Family:   "container-optimized-image",
 		})
 	if err != nil {
-		return errors.Wrap(err, "fetch latest image")
+		return "", errors.Wrap(err, "fetch latest image")
+	}
+
+	var dockerCompose bytes.Buffer
+
+	err = r.nekoDockerComposeTemplate.Execute(&dockerCompose, map[string]any{"sessionAPIToken": sessionAPIToken})
+	if err != nil {
+		return "", errors.Wrap(err, "execute neko template")
 	}
 
 	description := fmt.Sprintf("automated neko, createdBy=%s", createdBy)
@@ -55,7 +68,7 @@ func (r *Supplier) ComputeCreate(ctx context.Context, name string, createdBy str
 		},
 		Hostname: name,
 		Metadata: map[string]string{
-			"docker-compose": nekoDockerCompose,
+			"docker-compose": dockerCompose.String(),
 			"user-data": fmt.Sprintf(
 				`#cloud-config
 datasource:
@@ -75,15 +88,31 @@ users:
 		},
 	})
 	if err != nil {
-		return errors.Wrap(err, "create operation")
+		return "", errors.Wrap(err, "create operation")
 	}
 
+	cloudInstanceID := operation.Metadata().GetInstanceId()
+
 	zerolog.Ctx(ctx).Info().
-		Str("operationID", operation.ID()).
+		Str("cloud_instance_id", cloudInstanceID).
+		Str("operation_id", operation.ID()).
 		Msg("cloud.instance.creating")
 
-	return nil
+	return cloudInstanceID, nil
 }
 
-//go:embed neko-docker-compose.yaml
-var nekoDockerCompose string
+func (r *Supplier) ComputeGet(ctx context.Context, name string) (*compute.Instance, error) {
+	resp, err := r.computeSDK.List(ctx, &compute.ListInstancesRequest{
+		FolderId: r.folderID,
+		Filter:   fmt.Sprintf(`name="%s"`, name),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "list instances")
+	}
+
+	if len(resp.GetInstances()) == 0 {
+		return nil, errors.Errorf("instance not found: %s", name)
+	}
+
+	return resp.GetInstances()[0], nil
+}
