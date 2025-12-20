@@ -2,6 +2,7 @@ package instancerepo
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
@@ -22,4 +23,13 @@ func (r *Repo) SaveInstance(ctx context.Context, instance *Instance) error {
 	}
 
 	return nil
+}
+
+func (r *Repo) ListActiveInstances(ctx context.Context) ([]Instance, error) {
+	instances, err := gorm.G[Instance](r.db).Where("status != ?", InstanceStatusDeleted).Find(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "list active instances")
+	}
+
+	return instances, nil
 }

@@ -11,7 +11,11 @@ type baseSettings struct {
 	YCOauthToken string `env:"YC_OAUTH_TOKEN" envDefault:"BAD_TOKEN"`
 	YCFolderID   string `env:"YC_FOLDER_ID" envDefault:"BAD_FOLDER"`
 
-	BotToken string `env:"BOT_TOKEN" envDefault:"BAD_TOKEN"`
+	SSHUserName  string `env:"SSH_USER_NAME" envDefault:"neko"`
+	SSHPublicKey string `env:"SSH_PUBLIC_KEY" envDefault:"BAD_PUBLIC_KEY"`
+
+	BotToken   string `env:"BOT_TOKEN" envDefault:"BAD_TOKEN"`
+	BotOwnerID int64  `env:"BOT_OWNER_ID" envDefault:"-1"`
 }
 
 // Settings

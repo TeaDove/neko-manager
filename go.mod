@@ -7,9 +7,10 @@ require (
 	github.com/rs/zerolog v1.34.0
 	github.com/teadove/teasutils/service_utils v0.1.1
 	github.com/teadove/teasutils/utils v0.3.0
-	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
+	github.com/teadove/terx v0.0.7
 	github.com/yandex-cloud/go-genproto v0.42.0
 	github.com/yandex-cloud/go-sdk/services/compute v1.0.29
+	github.com/yandex-cloud/go-sdk/services/vpc v0.0.24
 	github.com/yandex-cloud/go-sdk/v2 v2.35.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
@@ -25,6 +26,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
+	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
@@ -45,9 +47,12 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
+	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/urfave/cli/v2 v2.27.7 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
-	github.com/yandex-cloud/go-sdk/services/vpc v0.0.24 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.44.0 // indirect

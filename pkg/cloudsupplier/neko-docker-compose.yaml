@@ -2,7 +2,7 @@ services:
   neko:
     image: "ghcr.io/m1k1o/neko/firefox:3.0.9"
     restart: "unless-stopped"
-    shm_size: "4gb"
+#    shm_size: "4gb"
     ports:
       - "80:8080"
       - "59200-59300:59200-59300/udp"

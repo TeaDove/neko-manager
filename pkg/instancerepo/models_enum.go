@@ -16,18 +16,21 @@ const (
 	InstanceStatusCreating InstanceStatus = iota
 	// InstanceStatusRunning is a InstanceStatus of type Running.
 	InstanceStatusRunning
+	// InstanceStatusDeleting is a InstanceStatus of type Deleting.
+	InstanceStatusDeleting
 	// InstanceStatusDeleted is a InstanceStatus of type Deleted.
 	InstanceStatusDeleted
 )
 
 var ErrInvalidInstanceStatus = errors.New("not a valid InstanceStatus")
 
-const _InstanceStatusName = "CreatingRunningDeleted"
+const _InstanceStatusName = "CreatingRunningDeletingDeleted"
 
 var _InstanceStatusMap = map[InstanceStatus]string{
 	InstanceStatusCreating: _InstanceStatusName[0:8],
 	InstanceStatusRunning:  _InstanceStatusName[8:15],
-	InstanceStatusDeleted:  _InstanceStatusName[15:22],
+	InstanceStatusDeleting: _InstanceStatusName[15:23],
+	InstanceStatusDeleted:  _InstanceStatusName[23:30],
 }
 
 // String implements the Stringer interface.
@@ -48,7 +51,8 @@ func (x InstanceStatus) IsValid() bool {
 var _InstanceStatusValue = map[string]InstanceStatus{
 	_InstanceStatusName[0:8]:   InstanceStatusCreating,
 	_InstanceStatusName[8:15]:  InstanceStatusRunning,
-	_InstanceStatusName[15:22]: InstanceStatusDeleted,
+	_InstanceStatusName[15:23]: InstanceStatusDeleting,
+	_InstanceStatusName[23:30]: InstanceStatusDeleted,
 }
 
 // ParseInstanceStatus attempts to convert a string to a InstanceStatus.
