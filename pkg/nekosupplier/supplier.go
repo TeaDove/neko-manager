@@ -3,8 +3,9 @@ package nekosupplier
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 type Supplier struct {
@@ -18,7 +19,7 @@ func New(client *http.Client) *Supplier {
 }
 
 func (r *Supplier) Ping(ctx context.Context, ip string) error {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://%s%s", ip, r.metricsPath), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://%s%s", ip, r.metricsPath), nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}

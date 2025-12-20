@@ -14,7 +14,6 @@ import (
 type Supplier struct {
 	sdk        *ycsdk.SDK
 	computeSDK computesdk.InstanceClient
-	vpcSDK     vpcsdk.SubnetClient
 
 	folderID string
 	zone     string
@@ -24,11 +23,24 @@ type Supplier struct {
 	sshUsername  string
 }
 
-func New(ctx context.Context, sdk *ycsdk.SDK, folderID string, sshPublicKey string, sshUsername string) (*Supplier, error) {
-	r := &Supplier{sdk: sdk, computeSDK: computesdk.NewInstanceClient(sdk), folderID: folderID, sshPublicKey: sshPublicKey, sshUsername: sshUsername}
+func New(
+	ctx context.Context,
+	sdk *ycsdk.SDK,
+	folderID string,
+	sshPublicKey string,
+	sshUsername string,
+) (*Supplier, error) {
+	r := &Supplier{
+		sdk:          sdk,
+		computeSDK:   computesdk.NewInstanceClient(sdk),
+		folderID:     folderID,
+		sshPublicKey: sshPublicKey,
+		sshUsername:  sshUsername,
+	}
 	r.zone = "ru-central1-b"
 
 	var err error
+
 	r.subnetID, err = r.getDefaultNetworks(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get default subnets")
@@ -48,20 +60,20 @@ func (r *Supplier) getDefaultNetworks(ctx context.Context) (string, error) {
 		return "", errors.Wrap(err, "list networks")
 	}
 
-	if len(listResp.Networks) == 0 {
+	if len(listResp.GetNetworks()) == 0 {
 		return "", errors.New("no default network")
 	}
 
 	listSubnetsResp, err := networkSDK.ListSubnets(ctx, &vpc.ListNetworkSubnetsRequest{
-		NetworkId: listResp.Networks[0].Id,
+		NetworkId: listResp.GetNetworks()[0].GetId(),
 	})
 	if err != nil {
 		return "", errors.Wrap(err, "list subnets")
 	}
 
-	for _, subnet := range listSubnetsResp.Subnets {
-		if subnet.ZoneId == r.zone {
-			return subnet.Id, nil
+	for _, subnet := range listSubnetsResp.GetSubnets() {
+		if subnet.GetZoneId() == r.zone {
+			return subnet.GetId(), nil
 		}
 	}
 

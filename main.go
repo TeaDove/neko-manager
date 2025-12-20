@@ -51,7 +51,13 @@ func build(ctx context.Context) (*Container, error) {
 		return nil, errors.Wrap(err, "ycsdk build")
 	}
 
-	cloudSupplier, err := cloudsupplier.New(ctx, sdk, settings.Settings.YCFolderID, settings.Settings.SSHPublicKey, settings.Settings.SSHUserName)
+	cloudSupplier, err := cloudsupplier.New(
+		ctx,
+		sdk,
+		settings.Settings.YCFolderID,
+		settings.Settings.SSHPublicKey,
+		settings.Settings.SSHUserName,
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "new cloudsupplier")
 	}
@@ -82,5 +88,6 @@ func main() {
 	}
 
 	go container.ManagerService.Reconciliation(ctx)
+
 	container.TGBotPresentation.Run()
 }

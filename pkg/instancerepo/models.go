@@ -27,4 +27,4 @@ func (r *Instance) CloudName() string {
 // ENUM(Creating, Running, Deleting, Deleted)
 //
 //go:generate go tool go-enum --sql --marshal -f models.go
-type InstanceStatus int
+type InstanceStatus int //nolint: recvcheck // codegen :(

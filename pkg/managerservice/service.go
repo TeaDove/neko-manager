@@ -25,7 +25,11 @@ func New(instanceRepo *instancerepo.Repo, cloudSupplier *cloudsupplier.Supplier,
 	return &Service{instanceRepo: instanceRepo, cloudSupplier: cloudSupplier, terx: terx}
 }
 
-func (r *Service) RequestInstance(ctx context.Context, tgChatID int64, createdBy string) (instancerepo.Instance, error) {
+func (r *Service) RequestInstance(
+	ctx context.Context,
+	tgChatID int64,
+	createdBy string,
+) (instancerepo.Instance, error) {
 	instance := instancerepo.Instance{
 		ID:        randutils.RandomString(6),
 		Status:    instancerepo.InstanceStatusCreating,
@@ -44,8 +48,8 @@ func (r *Service) RequestInstance(ctx context.Context, tgChatID int64, createdBy
 		Info().
 		Msg("neko.instance.creating")
 
-	//err = r.cloudSupplier.ComputeCreate(ctx, instance.CloudName(), instance.CreatedBy)
-	//if err != nil {
+	// err = r.cloudSupplier.ComputeCreate(ctx, instance.CloudName(), instance.CreatedBy)
+	// if err != nil {
 	//	return instancerepo.Instance{}, errors.Wrap(err, "cloud supplier list")
 	//}
 
@@ -54,6 +58,7 @@ func (r *Service) RequestInstance(ctx context.Context, tgChatID int64, createdBy
 
 func (r *Service) Reconciliation(ctx context.Context) {
 	const period = time.Minute
+
 	for {
 		instances, err := r.instanceRepo.ListActiveInstances(ctx)
 		if err != nil {
@@ -63,11 +68,11 @@ func (r *Service) Reconciliation(ctx context.Context) {
 				Msg("failed.to.list.active.instances")
 
 			time.Sleep(period)
+
 			continue
 		}
 
 		test_utils.Pprint(instances)
 		time.Sleep(period)
-
 	}
 }
