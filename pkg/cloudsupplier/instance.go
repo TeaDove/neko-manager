@@ -41,7 +41,7 @@ func (r *Supplier) ComputeCreate(
 	description := fmt.Sprintf("automated neko, createdBy=%s", createdBy)
 
 	operation, err := r.computeSDK.Create(ctx, &compute.CreateInstanceRequest{
-		FolderId:    r.folderID,
+		FolderId:    r.FolderID,
 		ZoneId:      r.zone,
 		Name:        name,
 		Description: description,
@@ -106,7 +106,7 @@ users:
 
 func (r *Supplier) ComputeGet(ctx context.Context, name string) (*compute.Instance, error) {
 	resp, err := r.computeSDK.List(ctx, &compute.ListInstancesRequest{
-		FolderId: r.folderID,
+		FolderId: r.FolderID,
 		Filter:   fmt.Sprintf(`name="%s"`, name),
 	})
 	if err != nil {
@@ -122,7 +122,7 @@ func (r *Supplier) ComputeGet(ctx context.Context, name string) (*compute.Instan
 
 func (r *Supplier) ComputeList(ctx context.Context, name string) ([]*compute.Instance, error) {
 	resp, err := r.computeSDK.List(ctx, &compute.ListInstancesRequest{
-		FolderId: r.folderID,
+		FolderId: r.FolderID,
 		Filter:   fmt.Sprintf(`name CONTAINS "%s"`, name),
 	})
 	if err != nil {

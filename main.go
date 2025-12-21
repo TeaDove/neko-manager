@@ -79,7 +79,7 @@ func build(ctx context.Context) (*Container, error) {
 
 	managerService := managerservice.New(instanceRepo, cloudSupplier, terxBot, nekoSupplier)
 
-	tgBotPresentation := tgbotpresentation.New(managerService, terxBot)
+	tgBotPresentation := tgbotpresentation.New(managerService, terxBot, nekoSupplier)
 
 	return &Container{ManagerService: managerService, TGBotPresentation: tgBotPresentation}, nil
 }

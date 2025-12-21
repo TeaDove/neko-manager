@@ -17,7 +17,7 @@ type Supplier struct {
 	sdk        *ycsdk.SDK
 	computeSDK computesdk.InstanceClient
 
-	folderID string
+	FolderID string
 	zone     string
 	subnetID string
 
@@ -37,7 +37,7 @@ func New(
 	r := &Supplier{
 		sdk:          sdk,
 		computeSDK:   computesdk.NewInstanceClient(sdk),
-		folderID:     folderID,
+		FolderID:     folderID,
 		sshPublicKey: sshPublicKey,
 		sshUsername:  sshUsername,
 	}
@@ -65,7 +65,7 @@ func (r *Supplier) getDefaultNetworks(ctx context.Context) (string, error) {
 	networkSDK := vpcsdk.NewNetworkClient(r.sdk)
 
 	listResp, err := networkSDK.List(ctx, &vpc.ListNetworksRequest{
-		FolderId: r.folderID,
+		FolderId: r.FolderID,
 		Filter:   `name="default"`,
 	})
 	if err != nil {
