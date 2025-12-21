@@ -1,0 +1,9 @@
+services:
+  core:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ".data:/.data"
+      - ".env:/.env"
