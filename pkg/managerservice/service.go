@@ -1,6 +1,7 @@
 package managerservice
 
 import (
+	"context"
 	"neko-manager/pkg/cloudsupplier"
 	"neko-manager/pkg/instancerepo"
 	"neko-manager/pkg/nekosupplier"
@@ -23,4 +24,8 @@ func New(
 	nekosupplier *nekosupplier.Supplier,
 ) *Service {
 	return &Service{instanceRepo: instanceRepo, cloudSupplier: cloudSupplier, terx: terx, nekosupplier: nekosupplier}
+}
+
+func (r *Service) ListInstances(ctx context.Context) ([]instancerepo.Instance, error) {
+	return r.instanceRepo.ListActiveInstances(ctx)
 }

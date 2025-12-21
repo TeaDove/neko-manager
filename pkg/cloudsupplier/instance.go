@@ -5,16 +5,19 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
 	computesdk "github.com/yandex-cloud/go-sdk/services/compute/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (r *Supplier) ComputeCreate(
 	ctx context.Context,
+	id string,
 	name string,
 	createdBy string,
 	sessionAPIToken string,
@@ -49,7 +52,7 @@ func (r *Supplier) ComputeCreate(
 				OneToOneNatSpec: &compute.OneToOneNatSpec{IpVersion: compute.IpVersion_IPV4},
 			},
 		}},
-		Labels: map[string]string{"project": "neko-manager"},
+		Labels: map[string]string{"project": "neko-manager", "created-by": strings.ToLower(createdBy), "id": id},
 		BootDiskSpec: &compute.AttachedDiskSpec{
 			AutoDelete: true,
 			Disk: &compute.AttachedDiskSpec_DiskSpec_{DiskSpec: &compute.AttachedDiskSpec_DiskSpec{
@@ -115,4 +118,48 @@ func (r *Supplier) ComputeGet(ctx context.Context, name string) (*compute.Instan
 	}
 
 	return resp.GetInstances()[0], nil
+}
+
+func (r *Supplier) ComputeList(ctx context.Context, name string) ([]*compute.Instance, error) {
+	resp, err := r.computeSDK.List(ctx, &compute.ListInstancesRequest{
+		FolderId: r.folderID,
+		Filter:   fmt.Sprintf(`name CONTAINS "%s"`, name),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "list instances")
+	}
+
+	return resp.GetInstances(), nil
+}
+
+func (r *Supplier) ComputeDeleteWaited(ctx context.Context, cloudId string) error {
+	operation, err := r.computeSDK.Delete(ctx, &compute.DeleteInstanceRequest{InstanceId: cloudId})
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			zerolog.Ctx(ctx).
+				Warn().
+				Str("cloud_instance_id", cloudId).
+				Msg("instance.not.found")
+
+			return nil
+		}
+
+		return errors.Wrap(err, "delete")
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Str("cloud_instance_id", cloudId).
+		Str("operation_id", operation.ID()).
+		Msg("cloud.instance.deleting")
+
+	_, err = operation.Wait(ctx)
+	if err != nil {
+		return errors.Wrap(err, "wait")
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Str("cloud_instance_id", cloudId).
+		Msg("cloud.instance.deleted")
+
+	return nil
 }

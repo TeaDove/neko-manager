@@ -24,6 +24,7 @@ require (
 	github.com/abice/go-enum v0.9.2 // indirect
 	github.com/caarlos0/env/v11 v11.3.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
+	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1 // indirect

@@ -2,7 +2,6 @@ package instancerepo
 
 import (
 	"fmt"
-	"net"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -19,19 +18,29 @@ type Instance struct {
 	Status    InstanceStatus `gorm:"not null;type:string;index"`
 
 	SessionAPIToken string `gorm:"not null"`
-	IP              net.IP `gorm:"type:string;uniqueIndex"`
+	IP              string `gorm:"uniqueIndex"`
 	CloudInstanceID string
 }
 
 func (r *Instance) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("id", r.ID).
 		Str("cloud_instance_id", r.CloudInstanceID).
-		Stringer("ip", r.IP).
+		Str("ip", r.IP).
 		Stringer("status", r.Status)
 }
 
+const NEKO = "neko"
+
 func (r *Instance) CloudName() string {
-	return fmt.Sprintf("neko-%s", r.ID)
+	return fmt.Sprintf("%s-%s", NEKO, r.ID)
+}
+
+func (r *Instance) UserLoginURL() string {
+	return "http://%s?pwd=neko"
+}
+
+func (r *Instance) AdminLoginURL() string {
+	return "http://%s?pwd=admin"
 }
 
 // InstanceStatus

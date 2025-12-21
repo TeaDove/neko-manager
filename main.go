@@ -92,6 +92,11 @@ func main() {
 		panic(errors.Wrap(err, "build"))
 	}
 
+	err = container.ManagerService.DeleteUnknown(ctx)
+	if err != nil {
+		panic(errors.Wrap(err, "delete unknown instance"))
+	}
+
 	err = container.ManagerService.Reconciliation(ctx)
 	if err != nil {
 		panic(errors.Wrap(err, "reconciliation"))

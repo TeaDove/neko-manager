@@ -9,13 +9,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/pkg/errors"
-	"github.com/teadove/teasutils/utils/test_utils"
-	"github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
-
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/teasutils/service_utils/logger_utils"
+	"github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
 )
 
 func (r *Service) RequestInstance(
@@ -38,7 +36,7 @@ func (r *Service) RequestInstance(
 		return instancerepo.Instance{}, errors.Wrap(err, "save instance")
 	}
 
-	go r.HandleInstance(ctx, &instance)
+	go r.HandleInstance(logger_utils.NewLoggedCtx(), &instance)
 
 	zerolog.Ctx(ctx).
 		Info().
@@ -61,7 +59,8 @@ func (r *Service) Reconciliation(ctx context.Context) error {
 }
 
 func (r *Service) HandleInstance(ctx context.Context, instance *instancerepo.Instance) {
-	ctx = logger_utils.WithValue(ctx, "instance_id", instance.ID)
+	instanceID := instance.ID
+	ctx = logger_utils.WithValue(ctx, "instance_id", instanceID)
 	zerolog.Ctx(ctx).Info().
 		Stringer("instance", instance.Status).
 		Msg("instance.handling.started")
@@ -71,7 +70,7 @@ func (r *Service) HandleInstance(ctx context.Context, instance *instancerepo.Ins
 		sleepDuration = 5 * time.Second
 	)
 	for {
-		instance, err = r.instanceRepo.GetInstance(ctx, instance.ID)
+		instance, err = r.instanceRepo.GetInstance(ctx, instanceID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Stack().Err(err).Msg("failed.to.get.instance")
 			time.Sleep(sleepDuration)
@@ -99,6 +98,12 @@ func (r *Service) processInstanceStatus(ctx context.Context, instance *instancer
 		return r.createInstance(ctx, instance)
 	case instancerepo.InstanceStatusStarted:
 		return r.waitForNekoStart(ctx, instance)
+	case instancerepo.InstanceStatusRunning:
+		return r.processRunning(ctx, instance)
+	case instancerepo.InstanceStatusDeleting:
+		return r.processDeleting(ctx, instance)
+	case instancerepo.InstanceStatusDeleted:
+		return nil
 	default:
 		panic("invalid instance status")
 	}
@@ -107,6 +112,7 @@ func (r *Service) processInstanceStatus(ctx context.Context, instance *instancer
 func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Instance) error {
 	cloudInstanceID, err := r.cloudSupplier.ComputeCreate(
 		ctx,
+		instance.ID,
 		instance.CloudName(),
 		instance.CreatedBy,
 		instance.SessionAPIToken,
@@ -121,48 +127,152 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 			return errors.Wrap(err, "compute get")
 		}
 
-		if computeState.GetStatus() == compute.Instance_RUNNING && len(computeState.GetNetworkInterfaces()) != 0 {
-			instance.CloudInstanceID = cloudInstanceID
+		if computeState.GetStatus() != compute.Instance_RUNNING || len(computeState.GetNetworkInterfaces()) == 0 {
+			zerolog.Ctx(ctx).Info().
+				Str("state", computeState.GetStatus().String()).
+				Msg("instance.is.not.running")
+			time.Sleep(10 * time.Second)
 
-			test_utils.Pprint(computeState.GetNetworkInterfaces())
-
-			instance.IP = net.ParseIP(computeState.GetNetworkInterfaces()[0].GetPrimaryV4Address().GetAddress())
-			if instance.IP == nil {
-				continue
-			}
-
-			instance.Status = instancerepo.InstanceStatusStarted
-
-			err = r.instanceRepo.SaveInstance(ctx, instance)
-			if err != nil {
-				return errors.Wrap(err, "save instance")
-			}
-
-			_, err = r.terx.Bot.Send(tgbotapi.NewMessage(instance.TGChatID,
-				fmt.Sprintf("Cloud instance created: %s", instance.ID)),
-			)
-			if err != nil {
-				return errors.Wrap(err, "send tg message")
-			}
-
-			return nil
+			continue
 		}
 
-		time.Sleep(10 * time.Second)
+		instance.CloudInstanceID = cloudInstanceID
+
+		address := net.ParseIP(
+			computeState.GetNetworkInterfaces()[0].GetPrimaryV4Address().GetOneToOneNat().GetAddress(),
+		)
+		if address == nil {
+			continue
+		}
+
+		instance.IP = address.String()
+
+		instance.Status = instancerepo.InstanceStatusStarted
+
+		err = r.instanceRepo.SaveInstance(ctx, instance)
+		if err != nil {
+			return errors.Wrap(err, "save instance")
+		}
+
+		_, err = r.terx.Bot.Send(tgbotapi.NewMessage(instance.TGChatID,
+			fmt.Sprintf("Cloud instance created: %s", instance.ID)),
+		)
+		if err != nil {
+			return errors.Wrap(err, "send tg message")
+		}
+
+		return nil
 	}
 }
 
 func (r *Service) waitForNekoStart(ctx context.Context, instance *instancerepo.Instance) error {
 	for {
-		err := r.nekosupplier.GetStats(ctx, instance.IP.String(), instance.SessionAPIToken)
+		_, err := r.nekosupplier.GetStats(ctx, instance.IP, instance.SessionAPIToken)
 		if err != nil {
 			zerolog.Ctx(ctx).
 				Info().
 				Err(err).
 				Msg("neko.get.stats")
 			time.Sleep(10 * time.Second)
+
+			continue
+		}
+
+		instance.Status = instancerepo.InstanceStatusRunning
+
+		err = r.instanceRepo.SaveInstance(ctx, instance)
+		if err != nil {
+			return errors.Wrap(err, "save instance")
+		}
+
+		msg := tgbotapi.NewMessage(instance.TGChatID,
+			fmt.Sprintf(`
+Neko <code>%s</code> instance started by %s
+
+User login: %s
+Admin login: %s
+`, instance.ID, instance.CreatedBy, instance.UserLoginURL(), instance.AdminLoginURL()))
+		msg.ParseMode = tgbotapi.ModeHTML
+
+		_, err = r.terx.Bot.Send(msg)
+		if err != nil {
+			return errors.Wrap(err, "send tg message")
 		}
 
 		return nil
 	}
+}
+
+func (r *Service) requireDeletion(ctx context.Context, instance *instancerepo.Instance) (bool, error) {
+	stats, err := r.nekosupplier.GetStats(ctx, instance.IP, instance.SessionAPIToken)
+	if err != nil {
+		return false, errors.Wrap(err, "neko get stats")
+	}
+
+	if stats.TotalUsers != 0 || stats.TotalAdmins != 0 {
+		zerolog.Ctx(ctx).Info().
+			Interface("stats", stats).
+			Msg("neko.instance.using")
+
+		return false, nil
+	}
+
+	const maxIdle = time.Minute * 10
+
+	now := time.Now().UTC()
+
+	if !stats.LastUserLeftAt.IsZero() && stats.LastUserLeftAt.Add(maxIdle).Before(now) ||
+		!stats.LastAdminLeftAt.IsZero() && stats.LastAdminLeftAt.Add(maxIdle).Before(now) {
+		return true, nil
+	}
+
+	if stats.LastUserLeftAt.IsZero() && stats.LastAdminLeftAt.IsZero() &&
+		stats.ServerStartedAt.Add(maxIdle).Before(now) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (r *Service) processRunning(ctx context.Context, instance *instancerepo.Instance) error {
+	for {
+		ok, err := r.requireDeletion(ctx, instance)
+		if err != nil {
+			return errors.Wrap(err, "require deletion")
+		}
+
+		if !ok {
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
+		instance.Status = instancerepo.InstanceStatusDeleting
+
+		err = r.instanceRepo.SaveInstance(ctx, instance)
+		if err != nil {
+			return errors.Wrap(err, "save instance")
+		}
+
+		zerolog.Ctx(ctx).
+			Info().
+			Msg("neko.instance.deleting")
+
+		return nil
+	}
+}
+
+func (r *Service) processDeleting(ctx context.Context, instance *instancerepo.Instance) error {
+	err := r.cloudSupplier.ComputeDeleteWaited(ctx, instance.CloudInstanceID)
+	if err != nil {
+		return errors.Wrap(err, "compute delete")
+	}
+
+	instance.Status = instancerepo.InstanceStatusDeleted
+
+	err = r.instanceRepo.SaveInstance(ctx, instance)
+	if err != nil {
+		return errors.Wrap(err, "save instance")
+	}
+
+	return nil
 }
