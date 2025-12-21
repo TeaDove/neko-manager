@@ -41,10 +41,11 @@ func (r *Supplier) ComputeCreate(
 	description := fmt.Sprintf("automated neko, createdBy=%s", createdBy)
 
 	operation, err := r.computeSDK.Create(ctx, &compute.CreateInstanceRequest{
-		FolderId:    r.FolderID,
-		ZoneId:      r.zone,
-		Name:        name,
-		Description: description,
+		FolderId:         r.FolderID,
+		ZoneId:           r.zone,
+		Name:             name,
+		Description:      description,
+		SchedulingPolicy: &compute.SchedulingPolicy{Preemptible: true},
 		NetworkInterfaceSpecs: []*compute.NetworkInterfaceSpec{{
 			Index:    "0",
 			SubnetId: r.subnetID,

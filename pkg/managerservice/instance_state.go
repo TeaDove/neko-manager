@@ -274,6 +274,26 @@ func (r *Service) processRunning(ctx context.Context, instance *instancerepo.Ins
 	}
 }
 
+func (r *Service) Delete(ctx context.Context, instanceID string) error {
+	instance, err := r.instanceRepo.GetInstance(ctx, instanceID)
+	if err != nil {
+		return errors.Wrap(err, "get instance")
+	}
+
+	instance.Status = instancerepo.InstanceStatusDeleting
+
+	err = r.instanceRepo.SaveInstance(ctx, instance)
+	if err != nil {
+		return errors.Wrap(err, "save instance")
+	}
+
+	zerolog.Ctx(ctx).
+		Info().
+		Msg("neko.instance.deleting")
+
+	return r.reportInstance(ctx, instance, "Deleting instance by request", true)
+}
+
 func (r *Service) processDeleting(ctx context.Context, instance *instancerepo.Instance) error {
 	err := r.cloudSupplier.ComputeDeleteWaited(ctx, instance.CloudInstanceID)
 	if err != nil {

@@ -60,6 +60,7 @@ func (r *Instance) ssh() string {
 }
 
 func (r *Instance) Repr(stats *nekosupplier.Stats) string {
+	// TODO rewrite using templating
 	var (
 		builder strings.Builder
 		now     = time.Now().UTC()
@@ -79,16 +80,24 @@ Alive for %s
 	)
 
 	if r.IP != "" {
+		if r.Status == InstanceStatusRunning {
+			builder.WriteString(
+				fmt.Sprintf(`
+User login: %s
+Admin login: %s`,
+					r.UserLoginURL(),
+					r.AdminLoginURL(),
+				),
+			)
+		}
+
 		builder.WriteString(
 			fmt.Sprintf(
-				`User login: %s
-Admin login: %s
+				`
 IP: %s
 SSH: <code>%s</code>
 
 `,
-				r.UserLoginURL(),
-				r.AdminLoginURL(),
 				r.IP,
 				r.ssh(),
 			),
@@ -102,48 +111,53 @@ SSH: <code>%s</code>
 	}
 
 	if stats != nil {
-		reprStats(stats, &builder, now)
+		builder.WriteString(reprStats(stats, now))
 	}
 
 	return builder.String()
 }
 
-func reprStats(stats *nekosupplier.Stats, builder *strings.Builder, now time.Time) {
+func reprStats(stats *nekosupplier.Stats, now time.Time) string {
+	var builder strings.Builder
 	builder.WriteString("Statistics: ")
 
 	var usage bool
 	if stats.HasHost {
 		usage = true
 
-		fmt.Fprintf(builder, "host = <code>%s</code> ", stats.HostId)
+		builder.WriteString(fmt.Sprintf("host = <code>%s</code> ", stats.HostId))
 	}
 
 	if stats.TotalUsers != 0 {
 		usage = true
 
-		fmt.Fprintf(builder, "total users = %d ", stats.TotalUsers)
+		builder.WriteString(fmt.Sprintf("total users = %d ", stats.TotalUsers))
 	} else if !stats.LastUserLeftAt.IsZero() {
 		usage = true
 
-		fmt.Fprintf(builder, "last user left = %s ago ", time_utils.RoundDuration(now.Sub(stats.LastUserLeftAt)))
+		builder.WriteString(fmt.Sprintf("last user left = %s ago ", time_utils.RoundDuration(now.Sub(stats.LastUserLeftAt))))
 	}
 
 	if stats.TotalAdmins != 0 {
 		usage = true
 
-		fmt.Fprintf(builder, "total admins = %d ", stats.TotalAdmins)
+		builder.WriteString(fmt.Sprintf("total admins = %d ", stats.TotalAdmins))
 	} else if !stats.LastAdminLeftAt.IsZero() {
 		usage = true
 
-		fmt.Fprintf(builder,
-			"last admin left = %s ago ",
-			time_utils.RoundDuration(now.Sub(stats.LastAdminLeftAt)))
+		builder.WriteString(
+			fmt.Sprintf("last admin left = %s ago ",
+				time_utils.RoundDuration(now.Sub(stats.LastAdminLeftAt))),
+		)
 	}
 
 	if !usage {
-		fmt.Fprintf(builder,
-			"no usage for = %s ", time_utils.RoundDuration(now.Sub(stats.ServerStartedAt)))
+		builder.WriteString(
+			fmt.Sprintf("no usage for = %s ", time_utils.RoundDuration(now.Sub(stats.ServerStartedAt))),
+		)
 	}
+
+	return builder.String()
 }
 
 // InstanceStatus

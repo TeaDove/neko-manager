@@ -21,7 +21,9 @@ func New(managerService *managerservice.Service, terx *terx.Terx, nekosupplier *
 
 func (r *Presentation) Run() {
 	r.terx.AddHandler(terx.FilterCommand("start"), func(c *terx.Ctx) error {
-		return c.Reply("Help:\n/request - creates neko instance\n/list - lists active instances")
+		return c.Reply(
+			"Help:\n/request - creates neko instance\n/list - lists active instances\n/delete &lt;id&gt; - deletes instance",
+		)
 	})
 
 	r.terx.AddHandler(terx.FilterAnd(terx.FilterCommand("request"), terx.FilterFromUser(r.terx.OwnerUserID)),
@@ -34,7 +36,7 @@ func (r *Presentation) Run() {
 			return c.Replyf("Instance requested, wait ~5 minutes")
 		})
 
-	r.terx.AddHandler(terx.FilterCommand("list"),
+	r.terx.AddHandler(terx.FilterAnd(terx.FilterCommand("list"), terx.FilterFromUser(r.terx.OwnerUserID)),
 		func(c *terx.Ctx) error {
 			instances, err := r.managerService.ListInstances(c.Context)
 			if err != nil {
@@ -58,6 +60,18 @@ func (r *Presentation) Run() {
 			}
 
 			return nil
+		})
+
+	r.terx.AddHandler(terx.FilterAnd(terx.FilterCommand("delete"), terx.FilterFromUser(r.terx.OwnerUserID)),
+		func(c *terx.Ctx) error {
+			instanceID := c.Text
+
+			err := r.managerService.Delete(c.Context, instanceID)
+			if err != nil {
+				return errors.Wrap(err, "delete instance")
+			}
+
+			return c.Reply("Instance deleting")
 		})
 
 	r.terx.PollerRun()
