@@ -9,7 +9,7 @@ RUN go get ./...
 
 COPY . .
 
-RUN make build
+RUN go build -o=bootstrap main.go
 
 ## Now copy it into our base image.
 FROM debian:trixie
