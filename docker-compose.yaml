@@ -12,7 +12,5 @@ services:
     image: nginx:1.29.4-alpine
     ports:
       - "8080:80"
-    depends_on:
-      - backend
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
