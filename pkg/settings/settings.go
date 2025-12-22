@@ -16,6 +16,10 @@ type baseSettings struct {
 
 	BotToken   string `env:"BOT_TOKEN"    envDefault:"BAD_TOKEN"`
 	BotOwnerID int64  `env:"BOT_OWNER_ID" envDefault:"-1"`
+
+	ProxyURL string `env:"PROXY_URL"` // https://kodiki-hack.ru:8080
+	CertFile string `env:"CERT_FILE" envDefault:".data/privkey.pem"`
+	KeyFile  string `env:"KEY_FILE"  envDefault:".data/fullchain.pem"`
 }
 
 // Settings

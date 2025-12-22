@@ -5,6 +5,7 @@ import (
 	"neko-manager/pkg/cloudsupplier"
 	"neko-manager/pkg/instancerepo"
 	"neko-manager/pkg/managerservice"
+	"neko-manager/pkg/nekoproxy"
 	"neko-manager/pkg/nekosupplier"
 	"neko-manager/pkg/settings"
 	"neko-manager/pkg/tgbotpresentation"
@@ -26,6 +27,7 @@ import (
 type Container struct {
 	ManagerService    *managerservice.Service
 	TGBotPresentation *tgbotpresentation.Presentation
+	NekoProxy         *nekoproxy.Proxy
 }
 
 func build(ctx context.Context) (*Container, error) {
@@ -76,12 +78,13 @@ func build(ctx context.Context) (*Container, error) {
 	}
 
 	nekoSupplier := nekosupplier.New(&http.Client{Timeout: time.Second * 5})
+	nekoProxy := nekoproxy.New()
 
-	managerService := managerservice.New(instanceRepo, cloudSupplier, terxBot, nekoSupplier)
+	managerService := managerservice.New(instanceRepo, cloudSupplier, terxBot, nekoSupplier, nekoProxy)
 
 	tgBotPresentation := tgbotpresentation.New(managerService, terxBot, nekoSupplier)
 
-	return &Container{ManagerService: managerService, TGBotPresentation: tgBotPresentation}, nil
+	return &Container{ManagerService: managerService, TGBotPresentation: tgBotPresentation, NekoProxy: nekoProxy}, nil
 }
 
 func main() {
@@ -101,6 +104,24 @@ func main() {
 	if err != nil {
 		panic(errors.Wrap(err, "reconciliation"))
 	}
+
+	go func() {
+		if settings.Settings.ProxyURL == "" {
+			return
+		}
+
+		container.NekoProxy.URL = settings.Settings.ProxyURL
+
+		err = http.ListenAndServeTLS( //nolint: gosec // don't care
+			":8080",
+			settings.Settings.CertFile,
+			settings.Settings.KeyFile,
+			container.NekoProxy.MakeSTDProxy(ctx),
+		)
+		if err != nil {
+			panic(errors.Wrap(err, "serve"))
+		}
+	}()
 
 	container.TGBotPresentation.Run()
 }

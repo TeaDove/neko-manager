@@ -25,6 +25,7 @@ func TestRepr(t *testing.T) {
 		CloudFolderID:   "b1gt2lbgae1f073bjo0u",
 		CloudInstanceID: "epdec5ei91e5aeg732ok",
 		IP:              "158.160.84.42",
+		ProxyURL:        "https://kodiki-hack.ru:8080",
 	}
 
 	repr, err := instance.Repr(&nekosupplier.Stats{

@@ -4,8 +4,13 @@ Alive for {{ call .Elapsed .Instance.CreatedAt }}
 
 {{ if ne .Instance.IP "" -}}
 {{ if eq .Instance.Status.String "Running" -}}
+{{ if ne .Instance.ProxyURL "" -}}
+User login: {{ .Instance.ProxyURL }}?pwd=neko
+Admin login: {{ .Instance.ProxyURL }}?pwd=admin
+{{ else -}}
 User login: http://{{ .Instance.IP }}?pwd=neko
 Admin login: http://{{ .Instance.IP }}?pwd=admin
+{{ end -}}
 {{ end -}}
 IP: {{ .Instance.IP }}
 SSH: <code>ssh -oStrictHostKeyChecking=no -i ~/.ssh/id_rsa_yc -v neko@{{ .Instance.IP }}</code>

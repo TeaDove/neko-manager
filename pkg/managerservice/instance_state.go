@@ -7,6 +7,7 @@ import (
 	"neko-manager/pkg/nekosupplier"
 	"neko-manager/pkg/randutils"
 	"net"
+	"net/url"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -63,6 +64,9 @@ func (r *Service) RequestInstance(
 		TGChatID:        tgChatID,
 		SessionAPIToken: rand.Text(),
 		CloudFolderID:   r.cloudSupplier.FolderID,
+	}
+	if r.proxy.URL != "" {
+		instance.ProxyURL = r.proxy.URL
 	}
 
 	ctx = logger_utils.WithValue(ctx, "instance_id", instance.ID)
@@ -183,6 +187,8 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 
 		instance.IP = address.String()
 		instance.Status = instancerepo.InstanceStatusStarted
+
+		r.proxy.SetTarget(&url.URL{Scheme: "http", Host: instance.IP})
 
 		err = r.instanceRepo.SaveInstance(ctx, instance)
 		if err != nil {

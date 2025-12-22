@@ -27,6 +27,7 @@ type Instance struct {
 	SessionAPIToken string `gorm:"not null"`
 	IP              string
 	CloudFolderID   string `gorm:"not null"`
+	ProxyURL        string
 	CloudInstanceID string
 }
 
@@ -55,7 +56,9 @@ func (r *Instance) Repr(stats *nekosupplier.Stats) (string, error) {
 		"Stats":    stats,
 		"Elapsed": func(v time.Time) string {
 			return time_utils.RoundDuration(time.Since(v))
-		}})
+		},
+	},
+	)
 	if err != nil {
 		return "", errors.Wrap(err, "execute template")
 	}
