@@ -30,6 +30,20 @@ type Stats struct {
 	LastAdminLeftAt time.Time `json:"last_admin_left_at,omitempty"`
 }
 
+func (r *Stats) LastUsageAt() time.Time {
+	lastUsage := r.ServerStartedAt
+
+	if r.LastUserLeftAt.After(r.LastUserLeftAt) {
+		lastUsage = r.LastUserLeftAt
+	}
+
+	if r.LastAdminLeftAt.After(lastUsage) {
+		lastUsage = r.LastAdminLeftAt
+	}
+
+	return lastUsage
+}
+
 func (r *Supplier) GetStats(ctx context.Context, ip string, sessionAPIToken string) (Stats, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://%s%s", ip, r.statsPath), nil)
 	if err != nil {

@@ -230,13 +230,7 @@ func (r *Service) requireDeletion(ctx context.Context, instance *instancerepo.In
 
 	now := time.Now().UTC()
 
-	if !stats.LastUserLeftAt.IsZero() && stats.LastUserLeftAt.Add(maxIdle).Before(now) ||
-		!stats.LastAdminLeftAt.IsZero() && stats.LastAdminLeftAt.Add(maxIdle).Before(now) {
-		return true, nil
-	}
-
-	if stats.LastUserLeftAt.IsZero() && stats.LastAdminLeftAt.IsZero() &&
-		stats.ServerStartedAt.Add(maxIdle).Before(now) {
+	if stats.LastUsageAt().Add(maxIdle).Before(now) {
 		return true, nil
 	}
 

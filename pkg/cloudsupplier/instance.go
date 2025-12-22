@@ -66,8 +66,8 @@ func (r *Supplier) ComputeCreate(
 		},
 		PlatformId: "standard-v4a", // standard-v3
 		ResourcesSpec: &compute.ResourcesSpec{
-			Memory:       1024 * 1024 * 1024 * 8,
-			Cores:        8,
+			Memory:       1024 * 1024 * 1024 * 4,
+			Cores:        4,
 			CoreFraction: 100,
 		},
 		Hostname: name,

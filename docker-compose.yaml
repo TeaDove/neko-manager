@@ -1,5 +1,5 @@
 services:
-  core:
+  neko-manager:
     restart: always
     build:
       context: .

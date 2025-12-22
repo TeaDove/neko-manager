@@ -1,4 +1,3 @@
-# Start by building the application.
 FROM golang:1.25-trixie AS build
 
 WORKDIR /src
@@ -11,14 +10,7 @@ COPY . .
 
 RUN go build -o=bootstrap main.go
 
-## Now copy it into our base image.
-FROM debian:trixie
-
-RUN rm -rf /var/lib/apt/lists/* \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl ffmpeg
-RUN update-ca-certificates
-RUN rm -rf /var/lib/apt/lists/*
+FROM gcr.io/distroless/base-debian13:latest
 
 COPY --from=build /src/bootstrap /
 
