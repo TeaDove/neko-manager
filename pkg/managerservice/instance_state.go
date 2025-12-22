@@ -31,7 +31,11 @@ func (r *Service) reportInstance(
 		}
 	}
 
-	var msgText = instance.Repr(statsPtr)
+	msgText, err := instance.Repr(statsPtr)
+	if err != nil {
+		return errors.Wrap(err, "instance repr")
+	}
+
 	if text != "" {
 		msgText = text + "\n\n" + msgText
 	}
@@ -39,7 +43,7 @@ func (r *Service) reportInstance(
 	msg := tgbotapi.NewMessage(instance.TGChatID, msgText)
 	msg.ParseMode = tgbotapi.ModeHTML
 
-	_, err := r.terx.Bot.Send(msg)
+	_, err = r.terx.Bot.Send(msg)
 	if err != nil {
 		return errors.Wrap(err, "send tg message")
 	}
@@ -162,7 +166,7 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 		if computeState.GetStatus() != compute.Instance_RUNNING || len(computeState.GetNetworkInterfaces()) == 0 {
 			zerolog.Ctx(ctx).Info().
 				Str("state", computeState.GetStatus().String()).
-				Msg("instance.is.not.running")
+				Msg("waiting.for.instance.to.start")
 			time.Sleep(10 * time.Second)
 
 			continue

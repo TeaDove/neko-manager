@@ -1,10 +1,14 @@
 package instancerepo
 
 import (
+	"bytes"
+	_ "embed"
 	"fmt"
+	"html/template"
 	"neko-manager/pkg/nekosupplier"
-	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/rs/zerolog"
 	"github.com/teadove/teasutils/utils/time_utils"
@@ -39,109 +43,24 @@ func (r *Instance) CloudName() string {
 	return fmt.Sprintf("%s-%s", NEKO, r.ID)
 }
 
-func (r *Instance) UserLoginURL() string {
-	return fmt.Sprintf("http://%s?pwd=neko", r.IP)
-}
+//go:embed instance.gohtml
+var reprRaw string
+var reprTemplate = template.Must(template.New("instance").Parse(reprRaw))
 
-func (r *Instance) AdminLoginURL() string {
-	return fmt.Sprintf("http://%s?pwd=admin", r.IP)
-}
+func (r *Instance) Repr(stats *nekosupplier.Stats) (string, error) {
+	var buf bytes.Buffer
 
-func (r *Instance) cloudURL() string {
-	return fmt.Sprintf(
-		"https://console.yandex.cloud/folders/%s/compute/instance/%s/overview",
-		r.CloudFolderID,
-		r.CloudInstanceID,
-	)
-}
-
-func (r *Instance) ssh() string {
-	return fmt.Sprintf("ssh -oStrictHostKeyChecking=no -i ~/.ssh/id_rsa_yc -v neko@%s", r.IP)
-}
-
-func (r *Instance) Repr(stats *nekosupplier.Stats) string {
-	// TODO rewrite using templating
-	var (
-		builder strings.Builder
-		now     = time.Now().UTC()
-	)
-
-	builder.WriteString(
-		fmt.Sprintf(
-			`🐈‍⬛ Neko instance &lt;<code>%s</code>&gt; created by @%s; <b>%s</b>
-Alive for %s
-
-`,
-			r.ID,
-			r.CreatedBy,
-			r.Status.EmojiStatus(),
-			time_utils.RoundDuration(now.Sub(r.CreatedAt)),
-		),
-	)
-
-	if r.IP != "" {
-		if r.Status == InstanceStatusRunning {
-			builder.WriteString(
-				fmt.Sprintf(`
-User login: %s
-Admin login: %s`,
-					r.UserLoginURL(),
-					r.AdminLoginURL(),
-				),
-			)
-		}
-
-		builder.WriteString(
-			fmt.Sprintf(
-				`
-IP: %s
-SSH: <code>%s</code>
-
-`,
-				r.IP,
-				r.ssh(),
-			),
-		)
+	err := reprTemplate.Execute(&buf, map[string]any{
+		"Instance": r,
+		"Stats":    stats,
+		"Elapsed": func(v time.Time) string {
+			return time_utils.RoundDuration(time.Since(v))
+		}})
+	if err != nil {
+		return "", errors.Wrap(err, "execute template")
 	}
 
-	if r.CloudInstanceID != "" {
-		builder.WriteString(fmt.Sprintf(`Cloud page: <a href="%s">yc</a>
-
-`, r.cloudURL()))
-	}
-
-	if stats != nil {
-		builder.WriteString(reprStats(stats, now))
-	}
-
-	return builder.String()
-}
-
-func reprStats(stats *nekosupplier.Stats, now time.Time) string {
-	var builder strings.Builder
-	builder.WriteString("Statistics: ")
-	builder.WriteString(fmt.Sprintf("not used for = %s ", time_utils.RoundDuration(now.Sub(stats.LastUsageAt()))))
-
-	if stats.HasHost {
-		builder.WriteString(fmt.Sprintf("host = <code>%s</code> ", stats.HostId))
-	}
-
-	if stats.TotalUsers != 0 {
-		builder.WriteString(fmt.Sprintf("total users = %d ", stats.TotalUsers))
-	} else if !stats.LastUserLeftAt.IsZero() {
-		builder.WriteString(fmt.Sprintf("last user left = %s ago ", time_utils.RoundDuration(now.Sub(stats.LastUserLeftAt))))
-	}
-
-	if stats.TotalAdmins != 0 {
-		builder.WriteString(fmt.Sprintf("total admins = %d ", stats.TotalAdmins))
-	} else if !stats.LastAdminLeftAt.IsZero() {
-		builder.WriteString(
-			fmt.Sprintf("last admin left = %s ago ",
-				time_utils.RoundDuration(now.Sub(stats.LastAdminLeftAt))),
-		)
-	}
-
-	return builder.String()
+	return buf.String(), nil
 }
 
 // InstanceStatus

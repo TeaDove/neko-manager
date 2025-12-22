@@ -3,8 +3,11 @@ module neko-manager
 go 1.25
 
 require (
+	github.com/deckarep/golang-set/v2 v2.8.0
+	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.34.0
+	github.com/stretchr/testify v1.11.1
 	github.com/teadove/teasutils/service_utils v0.1.1
 	github.com/teadove/teasutils/utils v0.3.0
 	github.com/teadove/terx v0.0.7
@@ -12,6 +15,7 @@ require (
 	github.com/yandex-cloud/go-sdk/services/compute v1.0.29
 	github.com/yandex-cloud/go-sdk/services/vpc v0.0.24
 	github.com/yandex-cloud/go-sdk/v2 v2.35.0
+	google.golang.org/grpc v1.74.0-dev
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
 )
@@ -24,10 +28,8 @@ require (
 	github.com/abice/go-enum v0.9.2 // indirect
 	github.com/caarlos0/env/v11 v11.3.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
-	github.com/fatih/color v1.18.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
-	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
@@ -45,6 +47,7 @@ require (
 	github.com/mattn/goveralls v0.0.12 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
@@ -67,9 +70,9 @@ require (
 	golang.org/x/tools/cmd/cover v0.1.0-deprecated // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250528174236-200df99c418a // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
-	google.golang.org/grpc v1.74.0-dev // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 tool github.com/abice/go-enum

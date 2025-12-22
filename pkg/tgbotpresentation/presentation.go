@@ -19,7 +19,7 @@ func New(managerService *managerservice.Service, terx *terx.Terx, nekosupplier *
 	return &Presentation{managerService: managerService, terx: terx, nekosupplier: nekosupplier}
 }
 
-func (r *Presentation) Run() {
+func (r *Presentation) Run() { //nolint: gocognit // Presentation
 	r.terx.AddHandler(terx.FilterCommand("start"), func(c *terx.Ctx) error {
 		return c.Reply(
 			"Help:\n/request - creates neko instance\n/list - lists active instances\n/delete &lt;id&gt; - deletes instance",
@@ -43,6 +43,10 @@ func (r *Presentation) Run() {
 				return errors.Wrap(err, "list instance")
 			}
 
+			if len(instances) == 0 {
+				return c.Reply("No active instances")
+			}
+
 			for _, instance := range instances {
 				var statsPtr *nekosupplier.Stats
 
@@ -53,7 +57,12 @@ func (r *Presentation) Run() {
 					}
 				}
 
-				err = c.Reply(instance.Repr(statsPtr))
+				text, err := instance.Repr(statsPtr)
+				if err != nil {
+					return errors.Wrap(err, "repr")
+				}
+
+				err = c.Reply(text)
 				if err != nil {
 					return errors.Wrap(err, "reply")
 				}

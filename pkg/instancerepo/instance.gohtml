@@ -1,0 +1,24 @@
+🐈‍⬛ Neko instance &lt;<code>{{ .Instance.ID }}</code>&gt; (@{{ .Instance.CreatedBy }})
+<b>{{ .Instance.Status.EmojiStatus }}</b>
+Alive for {{ call .Elapsed .Instance.CreatedAt }}
+
+{{ if ne .Instance.IP "" -}}
+{{ if eq .Instance.Status.String "Running" -}}
+User login: http://{{ .Instance.IP }}?pwd=neko
+Admin login: http://{{ .Instance.IP }}?pwd=admin
+{{ end -}}
+IP: {{ .Instance.IP }}
+SSH: <code>ssh -oStrictHostKeyChecking=no -i ~/.ssh/id_rsa_yc -v neko@{{ .Instance.IP }}</code>
+{{ end -}}
+{{ if ne .Instance.CloudInstanceID "" -}}
+Cloud: <a href="https://console.yandex.cloud/folders/{{ .Instance.CloudFolderID }}/compute/instance/{{ .Instance.CloudInstanceID }}/overview">yc</a>
+{{ end -}}
+
+{{ if .Stats }}
+Load: not used for = {{ call .Elapsed .Stats.LastUsageAt }}
+{{- if .Stats.HasHost }}; host = <code>{{ .Stats.HostId }}</code>{{ end }}
+{{- if gt .Stats.TotalUsers 0 }}; total users = {{ .Stats.TotalUsers }}{{ end }}
+{{- if not .Stats.LastUserLeftAt.IsZero }}; last user left = {{ call .Elapsed .Stats.LastUserLeftAt }} ago{{ end }}
+{{- if gt .Stats.TotalAdmins 0 }}; total admins = {{ .Stats.TotalAdmins }}{{ end }}
+{{- if not .Stats.LastAdminLeftAt.IsZero }}; last admin left = {{ call .Elapsed .Stats.LastAdminLeftAt }} ago{{ end }}
+{{ end }}

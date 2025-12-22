@@ -100,8 +100,6 @@ github.com/teadove/teasutils/service_utils v0.1.1 h1:MWFb8RL1fL9SNgV5lOkr2sFcMBw
 github.com/teadove/teasutils/service_utils v0.1.1/go.mod h1:H0tQNfTmwHYYmc+Brv3xAHzXDO3wRiD51taL673khos=
 github.com/teadove/teasutils/utils v0.3.0 h1:j+TR0Li5+bjmHfT0XSBXWgBHKtOWkZ9hNGhmVf5fADM=
 github.com/teadove/teasutils/utils v0.3.0/go.mod h1:yO2qli6FDkV2kWgHAuovtuZ8oiq8F+cIoZ1smSFgI4U=
-github.com/teadove/terx v0.0.6 h1:U/2ive3k3YVDKXuE7HzSesFj9K4qc2BaayPX1Ss2zRU=
-github.com/teadove/terx v0.0.6/go.mod h1:xVyoYUP1wXcEgFz4j1f85WKMVUZSYuZllgqqsJzMGLQ=
 github.com/teadove/terx v0.0.7 h1:SL8jkXMrO9dhT9udk7N9p0oC5JRpElUVe9pGkRx+Wu0=
 github.com/teadove/terx v0.0.7/go.mod h1:xVyoYUP1wXcEgFz4j1f85WKMVUZSYuZllgqqsJzMGLQ=
 github.com/tidwall/gjson v1.14.2/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
