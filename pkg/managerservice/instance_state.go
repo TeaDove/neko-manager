@@ -188,8 +188,6 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 		instance.IP = address.String()
 		instance.Status = instancerepo.InstanceStatusStarted
 
-		r.proxy.SetTarget(&url.URL{Scheme: "http", Host: instance.IP})
-
 		err = r.instanceRepo.SaveInstance(ctx, instance)
 		if err != nil {
 			return errors.Wrap(err, "save instance")
@@ -255,6 +253,8 @@ func (r *Service) requireDeletion(ctx context.Context, instance *instancerepo.In
 }
 
 func (r *Service) processRunning(ctx context.Context, instance *instancerepo.Instance) error {
+	r.proxy.SetTarget(&url.URL{Scheme: "http", Host: instance.IP})
+
 	for {
 		ok, err := r.requireDeletion(ctx, instance)
 		if err != nil {
