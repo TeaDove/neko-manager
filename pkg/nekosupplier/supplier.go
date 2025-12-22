@@ -33,7 +33,7 @@ type Stats struct {
 func (r *Stats) LastUsageAt() time.Time {
 	lastUsage := r.ServerStartedAt
 
-	if r.LastUserLeftAt.After(r.LastUserLeftAt) {
+	if r.LastUserLeftAt.After(lastUsage) {
 		lastUsage = r.LastUserLeftAt
 	}
 

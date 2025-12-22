@@ -120,40 +120,24 @@ SSH: <code>%s</code>
 func reprStats(stats *nekosupplier.Stats, now time.Time) string {
 	var builder strings.Builder
 	builder.WriteString("Statistics: ")
+	builder.WriteString(fmt.Sprintf("not used for = %s ", time_utils.RoundDuration(now.Sub(stats.LastUsageAt()))))
 
-	var usage bool
 	if stats.HasHost {
-		usage = true
-
 		builder.WriteString(fmt.Sprintf("host = <code>%s</code> ", stats.HostId))
 	}
 
 	if stats.TotalUsers != 0 {
-		usage = true
-
 		builder.WriteString(fmt.Sprintf("total users = %d ", stats.TotalUsers))
 	} else if !stats.LastUserLeftAt.IsZero() {
-		usage = true
-
 		builder.WriteString(fmt.Sprintf("last user left = %s ago ", time_utils.RoundDuration(now.Sub(stats.LastUserLeftAt))))
 	}
 
 	if stats.TotalAdmins != 0 {
-		usage = true
-
 		builder.WriteString(fmt.Sprintf("total admins = %d ", stats.TotalAdmins))
 	} else if !stats.LastAdminLeftAt.IsZero() {
-		usage = true
-
 		builder.WriteString(
 			fmt.Sprintf("last admin left = %s ago ",
 				time_utils.RoundDuration(now.Sub(stats.LastAdminLeftAt))),
-		)
-	}
-
-	if !usage {
-		builder.WriteString(
-			fmt.Sprintf("no usage for = %s ", time_utils.RoundDuration(now.Sub(stats.ServerStartedAt))),
 		)
 	}
 

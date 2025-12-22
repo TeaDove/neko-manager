@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/teasutils/service_utils/logger_utils"
+	"github.com/teadove/teasutils/utils/time_utils"
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
 )
 
@@ -218,9 +219,12 @@ func (r *Service) requireDeletion(ctx context.Context, instance *instancerepo.In
 		return false, errors.Wrap(err, "neko get stats")
 	}
 
+	notUsedFor := time.Now().UTC().Sub(stats.LastUsageAt())
+
 	if stats.TotalUsers != 0 || stats.TotalAdmins != 0 {
 		zerolog.Ctx(ctx).Info().
 			Interface("stats", stats).
+			Str("not_used_for", time_utils.RoundDuration(notUsedFor)).
 			Msg("neko.instance.using")
 
 		return false, nil
@@ -228,14 +232,13 @@ func (r *Service) requireDeletion(ctx context.Context, instance *instancerepo.In
 
 	const maxIdle = time.Minute * 10
 
-	now := time.Now().UTC()
-
-	if stats.LastUsageAt().Add(maxIdle).Before(now) {
+	if notUsedFor > maxIdle {
 		return true, nil
 	}
 
 	zerolog.Ctx(ctx).Info().
 		Interface("stats", stats).
+		Str("not_used_for", time_utils.RoundDuration(notUsedFor)).
 		Msg("neko.instance.no.users")
 
 	return false, nil
