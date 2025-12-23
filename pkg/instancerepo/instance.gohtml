@@ -7,10 +7,9 @@ Alive for {{ call .Elapsed .Instance.CreatedAt }}
 {{ if ne .Instance.ProxyURL "" -}}
 User login: {{ .Instance.ProxyURL }}?pwd=neko
 Admin login: {{ .Instance.ProxyURL }}?pwd=admin
-{{ else -}}
-User login: http://{{ .Instance.IP }}?pwd=neko
-Admin login: http://{{ .Instance.IP }}?pwd=admin
 {{ end -}}
+User login: http://{{ .Instance.IP }}?pwd=neko (unsecure)
+Admin login: http://{{ .Instance.IP }}?pwd=admin  (unsecure)
 {{ end -}}
 IP: {{ .Instance.IP }}
 SSH: <code>ssh -oStrictHostKeyChecking=no -i ~/.ssh/id_rsa_yc -v neko@{{ .Instance.IP }}</code>
