@@ -101,19 +101,25 @@ func (r *Service) Reconciliation(ctx context.Context) error {
 func (r *Service) HandleInstance(ctx context.Context, instance *instancerepo.Instance) {
 	instanceID := instance.ID
 	ctx = logger_utils.WithValue(ctx, "instance_id", instanceID)
-	zerolog.Ctx(ctx).Info().
-		Stringer("instance", instance.Status).
+
+	zerolog.Ctx(ctx).
+		Info().
+		Object("instance", instance).
 		Msg("instance.handling.started")
 
 	var (
-		err           error
-		sleepDuration = 5 * time.Second
+		err error
 	)
+
+	const (
+		sleepOnErrDuration = 5 * time.Second
+	)
+
 	for {
 		instance, err = r.instanceRepo.GetInstance(ctx, instanceID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Stack().Err(err).Msg("failed.to.get.instance")
-			time.Sleep(sleepDuration)
+			time.Sleep(sleepOnErrDuration)
 
 			continue
 		}
@@ -122,17 +128,29 @@ func (r *Service) HandleInstance(ctx context.Context, instance *instancerepo.Ins
 			return
 		}
 
-		err = r.processInstanceStatus(ctx, instance)
+		sleepDuration, err := r.processInstanceStatus(ctx, instance)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Stack().Err(err).Msg("failed.to.process.instance.state")
-			time.Sleep(sleepDuration)
+			zerolog.Ctx(ctx).
+				Error().
+				Stack().Err(err).
+				Object("instance", instance).
+				Msg("failed.to.process.instance.state")
+			time.Sleep(sleepOnErrDuration)
 
 			continue
+		}
+
+		if sleepDuration != 0 {
+			zerolog.Ctx(ctx).
+				Info().
+				Object("instance", instance).
+				Msg("sleeping.on.processing")
+			time.Sleep(sleepDuration)
 		}
 	}
 }
 
-func (r *Service) processInstanceStatus(ctx context.Context, instance *instancerepo.Instance) error {
+func (r *Service) processInstanceStatus(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
 	switch instance.Status {
 	case instancerepo.InstanceStatusCreating:
 		return r.createInstance(ctx, instance)
@@ -143,14 +161,14 @@ func (r *Service) processInstanceStatus(ctx context.Context, instance *instancer
 	case instancerepo.InstanceStatusDeleting:
 		return r.processDeleting(ctx, instance)
 	case instancerepo.InstanceStatusDeleted:
-		return nil
+		return 0, nil
 	default:
 		panic("invalid instance status")
 	}
 }
 
-func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Instance) error {
-	cloudInstanceID, err := r.cloudSupplier.ComputeCreate(
+func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
+	cloudInstanceID, err := r.cloudSupplier.ComputeCreateWaited(
 		ctx,
 		instance.ID,
 		instance.CloudName(),
@@ -158,67 +176,57 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 		instance.SessionAPIToken,
 	)
 	if err != nil {
-		return errors.Wrap(err, "compute create")
+		return 0, errors.Wrap(err, "compute create")
 	}
 
-	for {
-		computeState, err := r.cloudSupplier.ComputeGet(ctx, instance.CloudName())
-		if err != nil {
-			return errors.Wrap(err, "compute get")
-		}
-
-		if computeState.GetStatus() != compute.Instance_RUNNING || len(computeState.GetNetworkInterfaces()) == 0 {
-			zerolog.Ctx(ctx).Info().
-				Str("state", computeState.GetStatus().String()).
-				Msg("waiting.for.instance.to.start")
-			time.Sleep(10 * time.Second)
-
-			continue
-		}
-
-		instance.CloudInstanceID = cloudInstanceID
-
-		address := net.ParseIP(
-			computeState.GetNetworkInterfaces()[0].GetPrimaryV4Address().GetOneToOneNat().GetAddress(),
-		)
-		if address == nil {
-			continue
-		}
-
-		instance.IP = address.String()
-		instance.Status = instancerepo.InstanceStatusStarted
-
-		err = r.instanceRepo.SaveInstance(ctx, instance)
-		if err != nil {
-			return errors.Wrap(err, "save instance")
-		}
-
-		return r.reportInstance(ctx, instance, "Cloud instance created, but neko is not ready yet", false)
+	computeState, err := r.cloudSupplier.ComputeGet(ctx, instance.CloudName())
+	if err != nil {
+		return 0, errors.Wrap(err, "compute get")
 	}
+
+	if computeState.GetStatus() != compute.Instance_RUNNING || len(computeState.GetNetworkInterfaces()) == 0 {
+		return time.Second * 3, nil
+	}
+
+	instance.CloudInstanceID = cloudInstanceID
+
+	address := net.ParseIP(
+		computeState.GetNetworkInterfaces()[0].GetPrimaryV4Address().GetOneToOneNat().GetAddress(),
+	)
+	if address == nil {
+		return time.Second * 3, nil
+	}
+
+	instance.IP = address.String()
+	instance.Status = instancerepo.InstanceStatusStarted
+
+	err = r.instanceRepo.SaveInstance(ctx, instance)
+	if err != nil {
+		return 0, errors.Wrap(err, "save instance")
+	}
+
+	return 0, r.reportInstance(ctx, instance, "Cloud instance created, but neko is not ready yet", false)
 }
 
-func (r *Service) waitForNekoStart(ctx context.Context, instance *instancerepo.Instance) error {
-	for {
-		_, err := r.nekosupplier.GetStats(ctx, instance.IP, instance.SessionAPIToken)
-		if err != nil {
-			zerolog.Ctx(ctx).
-				Info().
-				Err(err).
-				Msg("neko.not.ready")
-			time.Sleep(10 * time.Second)
+func (r *Service) waitForNekoStart(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
+	_, err := r.nekosupplier.GetStats(ctx, instance.IP, instance.SessionAPIToken)
+	if err != nil {
+		zerolog.Ctx(ctx).
+			Warn().
+			Err(err).
+			Msg("neko.get.stats.err")
 
-			continue
-		}
-
-		instance.Status = instancerepo.InstanceStatusRunning
-
-		err = r.instanceRepo.SaveInstance(ctx, instance)
-		if err != nil {
-			return errors.Wrap(err, "save instance")
-		}
-
-		return r.reportInstance(ctx, instance, "Neko ready!!!", true)
+		return time.Second * 10, nil
 	}
+
+	instance.Status = instancerepo.InstanceStatusRunning
+
+	err = r.instanceRepo.SaveInstance(ctx, instance)
+	if err != nil {
+		return 0, errors.Wrap(err, "save instance")
+	}
+
+	return 0, r.reportInstance(ctx, instance, "Neko ready!!!", true)
 }
 
 func (r *Service) requireDeletion(ctx context.Context, instance *instancerepo.Instance) (bool, error) {
@@ -252,33 +260,30 @@ func (r *Service) requireDeletion(ctx context.Context, instance *instancerepo.In
 	return false, nil
 }
 
-func (r *Service) processRunning(ctx context.Context, instance *instancerepo.Instance) error {
+func (r *Service) processRunning(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
 	r.proxy.SetTarget(&url.URL{Scheme: "http", Host: instance.IP})
 
-	for {
-		ok, err := r.requireDeletion(ctx, instance)
-		if err != nil {
-			return errors.Wrap(err, "require deletion")
-		}
-
-		if !ok {
-			time.Sleep(10 * time.Second)
-			continue
-		}
-
-		instance.Status = instancerepo.InstanceStatusDeleting
-
-		err = r.instanceRepo.SaveInstance(ctx, instance)
-		if err != nil {
-			return errors.Wrap(err, "save instance")
-		}
-
-		zerolog.Ctx(ctx).
-			Info().
-			Msg("neko.instance.deleting")
-
-		return r.reportInstance(ctx, instance, "Deleting instance because of no usage", true)
+	ok, err := r.requireDeletion(ctx, instance)
+	if err != nil {
+		return 0, errors.Wrap(err, "require deletion")
 	}
+
+	if !ok {
+		return time.Second * 20, nil
+	}
+
+	instance.Status = instancerepo.InstanceStatusDeleting
+
+	err = r.instanceRepo.SaveInstance(ctx, instance)
+	if err != nil {
+		return 0, errors.Wrap(err, "save instance")
+	}
+
+	zerolog.Ctx(ctx).
+		Info().
+		Msg("neko.instance.deleting")
+
+	return 0, r.reportInstance(ctx, instance, "Deleting instance because of no usage", true)
 }
 
 func (r *Service) Delete(ctx context.Context, instanceID string) error {
@@ -301,18 +306,18 @@ func (r *Service) Delete(ctx context.Context, instanceID string) error {
 	return r.reportInstance(ctx, instance, "Deleting instance by request", true)
 }
 
-func (r *Service) processDeleting(ctx context.Context, instance *instancerepo.Instance) error {
+func (r *Service) processDeleting(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
 	err := r.cloudSupplier.ComputeDeleteWaited(ctx, instance.CloudInstanceID)
 	if err != nil {
-		return errors.Wrap(err, "compute delete")
+		return 0, errors.Wrap(err, "compute delete")
 	}
 
 	instance.Status = instancerepo.InstanceStatusDeleted
 
 	err = r.instanceRepo.SaveInstance(ctx, instance)
 	if err != nil {
-		return errors.Wrap(err, "save instance")
+		return 0, errors.Wrap(err, "save instance")
 	}
 
-	return r.reportInstance(ctx, instance, "Instance deleted", false)
+	return 0, r.reportInstance(ctx, instance, "Instance deleted", false)
 }

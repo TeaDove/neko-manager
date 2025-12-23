@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (r *Supplier) ComputeCreate(
+func (r *Supplier) ComputeCreateWaited(
 	ctx context.Context,
 	id string,
 	name string,
@@ -101,6 +101,11 @@ users:
 		Str("cloud_instance_id", cloudInstanceID).
 		Str("operation_id", operation.ID()).
 		Msg("cloud.instance.creating")
+
+	_, err = operation.Wait(ctx)
+	if err != nil {
+		return "", errors.Wrap(err, "wait operation")
+	}
 
 	return cloudInstanceID, nil
 }
