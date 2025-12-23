@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o=bootstrap main.go
+RUN go build -o=bootstrap -v main.go
 
 FROM gcr.io/distroless/base-debian13:latest
 
