@@ -13,10 +13,22 @@ type Presentation struct {
 	nekosupplier   *nekosupplier.Supplier
 
 	terx *terx.Terx
+
+	allowedChatID int64
 }
 
-func New(managerService *managerservice.Service, terx *terx.Terx, nekosupplier *nekosupplier.Supplier) *Presentation {
-	return &Presentation{managerService: managerService, terx: terx, nekosupplier: nekosupplier}
+func New(
+	managerService *managerservice.Service,
+	terx *terx.Terx,
+	nekosupplier *nekosupplier.Supplier,
+	allowedChatID int64,
+) *Presentation {
+	return &Presentation{
+		managerService: managerService,
+		terx:           terx,
+		nekosupplier:   nekosupplier,
+		allowedChatID:  allowedChatID,
+	}
 }
 
 func (r *Presentation) Run() { //nolint: gocognit // Presentation
@@ -26,7 +38,9 @@ func (r *Presentation) Run() { //nolint: gocognit // Presentation
 		)
 	})
 
-	r.terx.AddHandler(terx.FilterAnd(terx.FilterCommand("request"), terx.FilterFromUser(r.terx.OwnerUserID)),
+	filters := terx.FilterOr(terx.FilterFromUser(r.terx.OwnerUserID), terx.FilterFromChat(r.allowedChatID))
+
+	r.terx.AddHandler(terx.FilterAnd(filters, terx.FilterCommand("request")),
 		func(c *terx.Ctx) error {
 			_, err := r.managerService.RequestInstance(c.Context, c.Chat.ID, c.SentFrom.UserName)
 			if err != nil {
@@ -36,7 +50,7 @@ func (r *Presentation) Run() { //nolint: gocognit // Presentation
 			return c.Replyf("Instance requested, wait ~5 minutes")
 		})
 
-	r.terx.AddHandler(terx.FilterAnd(terx.FilterCommand("list"), terx.FilterFromUser(r.terx.OwnerUserID)),
+	r.terx.AddHandler(terx.FilterAnd(filters, terx.FilterCommand("list")),
 		func(c *terx.Ctx) error {
 			instances, err := r.managerService.ListInstances(c.Context)
 			if err != nil {
@@ -71,7 +85,7 @@ func (r *Presentation) Run() { //nolint: gocognit // Presentation
 			return nil
 		})
 
-	r.terx.AddHandler(terx.FilterAnd(terx.FilterCommand("delete"), terx.FilterFromUser(r.terx.OwnerUserID)),
+	r.terx.AddHandler(terx.FilterAnd(filters, terx.FilterCommand("delete")),
 		func(c *terx.Ctx) error {
 			instanceID := c.Text
 

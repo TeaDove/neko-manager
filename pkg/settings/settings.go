@@ -14,8 +14,9 @@ type baseSettings struct {
 	SSHUserName  string `env:"SSH_USER_NAME"  envDefault:"neko"`
 	SSHPublicKey string `env:"SSH_PUBLIC_KEY" envDefault:"BAD_PUBLIC_KEY"`
 
-	BotToken   string `env:"BOT_TOKEN"    envDefault:"BAD_TOKEN"`
-	BotOwnerID int64  `env:"BOT_OWNER_ID" envDefault:"-1"`
+	BotToken         string `env:"BOT_TOKEN"           envDefault:"BAD_TOKEN"`
+	BotOwnerID       int64  `env:"BOT_OWNER_ID"        envDefault:"-1"`
+	BotAllowedChatID int64  `env:"BOT_ALLOWED_CHAT_ID" envDefault:"BAD_CHAT_ID"`
 
 	ProxyURL string `env:"PROXY_URL"` // https://kodiki-hack.ru:8080
 	CertFile string `env:"CERT_FILE" envDefault:".data/fullchain.pem"`
