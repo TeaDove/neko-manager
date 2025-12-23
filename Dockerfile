@@ -4,7 +4,7 @@ WORKDIR /src
 
 ENV CGO_ENABLED=1
 COPY go.mod go.sum ./
-RUN go get ./...
+RUN go mod download
 
 COPY . .
 
