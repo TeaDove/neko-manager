@@ -7,7 +7,7 @@ import (
 	"neko-manager/pkg/nekoproxy"
 	"neko-manager/pkg/nekosupplier"
 
-	"github.com/teadove/terx/terx"
+	tele "gopkg.in/telebot.v4"
 )
 
 type Service struct {
@@ -16,20 +16,20 @@ type Service struct {
 	nekosupplier  *nekosupplier.Supplier
 	proxy         *nekoproxy.Proxy
 
-	terx *terx.Terx
+	bot *tele.Bot
 }
 
 func New(
 	instanceRepo *instancerepo.Repo,
 	cloudSupplier *cloudsupplier.Supplier,
-	terx *terx.Terx,
+	bot *tele.Bot,
 	nekosupplier *nekosupplier.Supplier,
 	proxy *nekoproxy.Proxy,
 ) *Service {
 	return &Service{
 		instanceRepo:  instanceRepo,
 		cloudSupplier: cloudSupplier,
-		terx:          terx,
+		bot:           bot,
 		nekosupplier:  nekosupplier,
 		proxy:         proxy,
 	}

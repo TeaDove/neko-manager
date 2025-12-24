@@ -15,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/teadove/teasutils/service_utils/db_utils"
 	"github.com/teadove/teasutils/service_utils/logger_utils"
-	"github.com/teadove/terx/terx"
 	ycsdk "github.com/yandex-cloud/go-sdk/v2"
 	"github.com/yandex-cloud/go-sdk/v2/credentials"
 	"github.com/yandex-cloud/go-sdk/v2/pkg/options"
@@ -67,26 +66,21 @@ func build(ctx context.Context) (*Container, error) {
 		return nil, errors.Wrap(err, "new cloudsupplier")
 	}
 
-	terxBot, err := terx.New(terx.Config{
-		Token:          settings.Settings.BotToken,
-		OwnerUserID:    settings.Settings.BotOwnerID,
-		ReplyWithErr:   true,
-		SendErrToOwner: true,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "new terx bot")
-	}
-
 	nekoSupplier := nekosupplier.New(&http.Client{Timeout: time.Second * 5})
 	nekoProxy := nekoproxy.New()
 
-	managerService := managerservice.New(instanceRepo, cloudSupplier, terxBot, nekoSupplier, nekoProxy)
+	bot, err := tgbotpresentation.BuildBot(settings.Settings.BotToken)
+	if err != nil {
+		return nil, errors.Wrap(err, "new bot")
+	}
+
+	managerService := managerservice.New(instanceRepo, cloudSupplier, bot, nekoSupplier, nekoProxy)
 
 	tgBotPresentation := tgbotpresentation.New(
 		managerService,
-		terxBot,
+		bot,
 		nekoSupplier,
-		settings.Settings.BotAllowedChatID,
+		settings.Settings.BotAllowedChats,
 	)
 
 	return &Container{ManagerService: managerService, TGBotPresentation: tgBotPresentation, NekoProxy: nekoProxy}, nil
@@ -128,5 +122,5 @@ func main() {
 		}
 	}()
 
-	container.TGBotPresentation.Run()
+	container.TGBotPresentation.Run(ctx)
 }

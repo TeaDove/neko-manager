@@ -18,8 +18,9 @@ type Instance struct {
 	ID        string    `gorm:"primaryKey"`
 	CreatedAt time.Time `gorm:"not null;autoCreateTime;not null"`
 
-	CreatedBy string `gorm:"not null"`
-	TGChatID  int64  `gorm:"not null"`
+	CreatedBy      string `gorm:"not null"`
+	TGChatID       int64  `gorm:"not null"`
+	TGThreadChatID int
 
 	UpdatedAt time.Time      `gorm:"not null;autoUpdateTime"`
 	Status    InstanceStatus `gorm:"not null;type:string;index"`

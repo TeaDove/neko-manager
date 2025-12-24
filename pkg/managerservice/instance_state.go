@@ -10,12 +10,12 @@ import (
 	"net/url"
 	"time"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/teasutils/service_utils/logger_utils"
 	"github.com/teadove/teasutils/utils/time_utils"
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
+	tele "gopkg.in/telebot.v4"
 )
 
 func (r *Service) reportInstance(
@@ -41,10 +41,11 @@ func (r *Service) reportInstance(
 		msgText = text + "\n\n" + msgText
 	}
 
-	msg := tgbotapi.NewMessage(instance.TGChatID, msgText)
-	msg.ParseMode = tgbotapi.ModeHTML
-
-	_, err = r.terx.Bot.Send(msg)
+	_, err = r.bot.Send(
+		tele.ChatID(instance.TGChatID),
+		msgText,
+		&tele.SendOptions{ThreadID: instance.TGThreadChatID, ParseMode: tele.ModeHTML},
+	)
 	if err != nil {
 		return errors.Wrap(err, "send tg message")
 	}
@@ -55,6 +56,7 @@ func (r *Service) reportInstance(
 func (r *Service) RequestInstance(
 	ctx context.Context,
 	tgChatID int64,
+	threadChatID int,
 	createdBy string,
 ) (instancerepo.Instance, error) {
 	instance := instancerepo.Instance{
@@ -62,6 +64,7 @@ func (r *Service) RequestInstance(
 		Status:          instancerepo.InstanceStatusCreating,
 		CreatedBy:       createdBy,
 		TGChatID:        tgChatID,
+		TGThreadChatID:  threadChatID,
 		SessionAPIToken: rand.Text(),
 		CloudFolderID:   r.cloudSupplier.FolderID,
 	}
