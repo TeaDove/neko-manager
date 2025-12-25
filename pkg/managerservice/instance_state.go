@@ -166,7 +166,12 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 	instance.IP = address.String()
 	instance.Status = instancerepo.InstanceStatusStarted
 
-	return 0, r.saveAndReportInstance(ctx, instance, "Cloud instance created, but neko is not ready yet", false)
+	return 0, r.saveAndReportInstance(
+		ctx,
+		instance,
+		"VM created, but neko <b>is not</b> ready yet, wait ~4 minutes",
+		false,
+	)
 }
 
 func (r *Service) waitForNekoStart(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
