@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -11,13 +12,11 @@ import (
 )
 
 type Supplier struct {
-	statsPath string
-
 	client *http.Client
 }
 
 func New(client *http.Client) *Supplier {
-	return &Supplier{client: client, statsPath: "/api/stats"}
+	return &Supplier{client: client}
 }
 
 type Stats struct {
@@ -44,28 +43,37 @@ func (r *Stats) LastUsageAt() time.Time {
 	return lastUsage
 }
 
-func (r *Supplier) GetStats(ctx context.Context, ip string, sessionAPIToken string) (Stats, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://%s%s", ip, r.statsPath), nil)
+func (r *Supplier) doRequest(ctx context.Context, ip string, sessionAPIToken string, path string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://%s%s", ip, path), nil)
 	if err != nil {
-		return Stats{}, errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	req.Header.Add("Authorization", "Bearer "+sessionAPIToken)
 
 	resp, err := r.client.Do(req)
 	if err != nil {
-		return Stats{}, errors.Wrap(err, "client do")
+		return nil, errors.Wrap(err, "client do")
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= http.StatusBadRequest {
-		return Stats{}, errors.Errorf("unexpected status code: %d", resp.StatusCode)
+		return nil, errors.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	return io.ReadAll(resp.Body)
+}
+
+func (r *Supplier) GetStats(ctx context.Context, ip string, sessionAPIToken string) (Stats, error) {
+	body, err := r.doRequest(ctx, ip, sessionAPIToken, "/api/stats")
+	if err != nil {
+		return Stats{}, errors.Wrap(err, "/api/stats")
 	}
 
 	var stats Stats
 
-	err = json.NewDecoder(resp.Body).Decode(&stats)
+	err = json.Unmarshal(body, &stats)
 	if err != nil {
 		return Stats{}, errors.Wrap(err, "decode response")
 	}
@@ -75,4 +83,17 @@ func (r *Supplier) GetStats(ctx context.Context, ip string, sessionAPIToken stri
 	}
 
 	return stats, nil
+}
+
+func (r *Supplier) GetScreenshot(ctx context.Context, ip string, sessionAPIToken string) ([]byte, error) {
+	body, err := r.doRequest(ctx, ip, sessionAPIToken, "/api/room/screen/cast.jpg")
+	if err != nil {
+		return nil, errors.Wrap(err, "/api/room/screen/cast.jpg")
+	}
+
+	if len(body) == 0 {
+		return nil, errors.New("empty screenshot")
+	}
+
+	return body, nil
 }
