@@ -223,7 +223,7 @@ func (r *Service) requireDeletion(ctx context.Context, instance *instancerepo.In
 
 func requireRegularReport(instance *instancerepo.Instance) bool {
 	now := time.Now().UTC()
-	return now.Sub(instance.CreatedAt) > 10*time.Minute && now.Sub(instance.UpdatedAt) > 5*time.Minute
+	return now.Sub(instance.CreatedAt) > 15*time.Minute && now.Sub(instance.UpdatedAt) > 45*time.Minute
 }
 
 func (r *Service) processRunning(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
