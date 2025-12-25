@@ -34,9 +34,15 @@ type Instance struct {
 
 func (r *Instance) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("id", r.ID).
-		Str("cloud_instance_id", r.CloudInstanceID).
-		Str("ip", r.IP).
 		Stringer("status", r.Status)
+
+	if r.CloudInstanceID != "" {
+		e.Str("cloud_instance_id", r.CloudInstanceID)
+	}
+
+	if r.IP != "" {
+		e.Str("ip", r.IP)
+	}
 }
 
 const NEKO = "neko"
