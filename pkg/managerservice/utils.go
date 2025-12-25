@@ -29,12 +29,12 @@ func (r *Service) saveAndReportInstance(
 	return nil
 }
 
-func (r *Service) reportInstance(
+func (r *Service) MakeTGReport(
 	ctx context.Context,
 	instance *instancerepo.Instance,
 	text string,
 	withStats bool,
-) error {
+) (any, error) {
 	var (
 		statsPtr   *nekosupplier.Stats
 		screenshot []byte
@@ -59,19 +59,29 @@ func (r *Service) reportInstance(
 
 	msgText, err := instance.Repr(statsPtr)
 	if err != nil {
-		return errors.Wrap(err, "instance repr")
+		return nil, errors.Wrap(err, "instance repr")
 	}
 
 	if text != "" {
 		msgText = text + "\n\n" + msgText
 	}
 
-	var msg any
-
 	if len(screenshot) != 0 {
-		msg = &tele.Photo{Caption: msgText, File: tele.FromReader(bytes.NewReader(screenshot))}
-	} else {
-		msg = msgText
+		return &tele.Photo{Caption: msgText, File: tele.FromReader(bytes.NewReader(screenshot))}, nil
+	}
+
+	return msgText, nil
+}
+
+func (r *Service) reportInstance(
+	ctx context.Context,
+	instance *instancerepo.Instance,
+	text string,
+	withStats bool,
+) error {
+	msg, err := r.MakeTGReport(ctx, instance, text, withStats)
+	if err != nil {
+		return errors.Wrap(err, "make tgreport")
 	}
 
 	_, err = r.bot.Send(

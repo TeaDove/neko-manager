@@ -122,21 +122,12 @@ func (r *Presentation) cmdList(c tele.Context) error {
 	}
 
 	for _, instance := range instances {
-		var statsPtr *nekosupplier.Stats
-
-		if instance.IP != "" {
-			stats, err := r.nekosupplier.GetStats(ctx, instance.IP, instance.SessionAPIToken)
-			if err == nil {
-				statsPtr = &stats
-			}
-		}
-
-		text, err := instance.Repr(statsPtr)
+		tgreport, err := r.managerService.MakeTGReport(ctx, &instance, "", true)
 		if err != nil {
-			return errors.Wrap(err, "repr")
+			return errors.Wrap(err, "make tgreport")
 		}
 
-		err = c.Reply(text)
+		err = c.Reply(tgreport)
 		if err != nil {
 			return errors.Wrap(err, "reply")
 		}

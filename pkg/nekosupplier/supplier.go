@@ -86,9 +86,9 @@ func (r *Supplier) GetStats(ctx context.Context, ip string, sessionAPIToken stri
 }
 
 func (r *Supplier) GetScreenshot(ctx context.Context, ip string, sessionAPIToken string) ([]byte, error) {
-	body, err := r.doRequest(ctx, ip, sessionAPIToken, "/api/room/screen/cast.jpg")
+	body, err := r.doRequest(ctx, ip, sessionAPIToken, "/api/room/screen/shot.jpg")
 	if err != nil {
-		return nil, errors.Wrap(err, "/api/room/screen/cast.jpg")
+		return nil, errors.Wrap(err, "/api/room/screen/shot.jpg")
 	}
 
 	if len(body) == 0 {
