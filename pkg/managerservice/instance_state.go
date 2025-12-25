@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"neko-manager/pkg/instancerepo"
-	"neko-manager/pkg/nekosupplier"
 	"neko-manager/pkg/randutils"
 	"net"
 	"net/url"
@@ -15,43 +14,7 @@ import (
 	"github.com/teadove/teasutils/service_utils/logger_utils"
 	"github.com/teadove/teasutils/utils/time_utils"
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
-	tele "gopkg.in/telebot.v4"
 )
-
-func (r *Service) reportInstance(
-	ctx context.Context,
-	instance *instancerepo.Instance,
-	text string,
-	withStats bool,
-) error {
-	var statsPtr *nekosupplier.Stats
-	if withStats && instance.IP != "" {
-		stats, err := r.nekosupplier.GetStats(ctx, instance.IP, instance.SessionAPIToken)
-		if err == nil {
-			statsPtr = &stats
-		}
-	}
-
-	msgText, err := instance.Repr(statsPtr)
-	if err != nil {
-		return errors.Wrap(err, "instance repr")
-	}
-
-	if text != "" {
-		msgText = text + "\n\n" + msgText
-	}
-
-	_, err = r.bot.Send(
-		tele.ChatID(instance.TGChatID),
-		msgText,
-		&tele.SendOptions{ThreadID: instance.TGThreadChatID, ParseMode: tele.ModeHTML},
-	)
-	if err != nil {
-		return errors.Wrap(err, "send tg message")
-	}
-
-	return nil
-}
 
 func (r *Service) RequestInstance(
 	ctx context.Context,
@@ -203,12 +166,7 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 	instance.IP = address.String()
 	instance.Status = instancerepo.InstanceStatusStarted
 
-	err = r.instanceRepo.SaveInstance(ctx, instance)
-	if err != nil {
-		return 0, errors.Wrap(err, "save instance")
-	}
-
-	return 0, r.reportInstance(ctx, instance, "Cloud instance created, but neko is not ready yet", false)
+	return 0, r.saveAndReportInstance(ctx, instance, "Cloud instance created, but neko is not ready yet", false)
 }
 
 func (r *Service) waitForNekoStart(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
@@ -224,12 +182,7 @@ func (r *Service) waitForNekoStart(ctx context.Context, instance *instancerepo.I
 
 	instance.Status = instancerepo.InstanceStatusRunning
 
-	err = r.instanceRepo.SaveInstance(ctx, instance)
-	if err != nil {
-		return 0, errors.Wrap(err, "save instance")
-	}
-
-	return 0, r.reportInstance(ctx, instance, "Neko ready!!!", true)
+	return 0, r.saveAndReportInstance(ctx, instance, "Neko ready!!!", true)
 }
 
 func (r *Service) requireDeletion(ctx context.Context, instance *instancerepo.Instance) (bool, error) {
@@ -263,6 +216,11 @@ func (r *Service) requireDeletion(ctx context.Context, instance *instancerepo.In
 	return false, nil
 }
 
+func requireRegularReport(instance *instancerepo.Instance) bool {
+	now := time.Now().UTC()
+	return now.Sub(instance.CreatedAt) > 10*time.Minute && now.Sub(instance.UpdatedAt) > 5*time.Minute
+}
+
 func (r *Service) processRunning(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
 	r.proxy.SetTarget(&url.URL{Scheme: "http", Host: instance.IP})
 
@@ -272,21 +230,25 @@ func (r *Service) processRunning(ctx context.Context, instance *instancerepo.Ins
 	}
 
 	if !ok {
-		return time.Second * 20, nil
+		if requireRegularReport(instance) {
+			instance.UpdatedAt = time.Now().UTC()
+
+			err = r.saveAndReportInstance(ctx, instance, "", true)
+			if err != nil {
+				return 0, errors.Wrap(err, "report instance")
+			}
+		}
+
+		return 20 * time.Second, nil
 	}
 
 	instance.Status = instancerepo.InstanceStatusDeleting
-
-	err = r.instanceRepo.SaveInstance(ctx, instance)
-	if err != nil {
-		return 0, errors.Wrap(err, "save instance")
-	}
 
 	zerolog.Ctx(ctx).
 		Info().
 		Msg("neko.instance.deleting")
 
-	return 0, r.reportInstance(ctx, instance, "Deleting instance because of no usage", true)
+	return 0, r.saveAndReportInstance(ctx, instance, "Deleting instance because of no usage", true)
 }
 
 func (r *Service) Delete(ctx context.Context, instanceID string) error {
@@ -297,16 +259,11 @@ func (r *Service) Delete(ctx context.Context, instanceID string) error {
 
 	instance.Status = instancerepo.InstanceStatusDeleting
 
-	err = r.instanceRepo.SaveInstance(ctx, instance)
-	if err != nil {
-		return errors.Wrap(err, "save instance")
-	}
-
 	zerolog.Ctx(ctx).
 		Info().
 		Msg("neko.instance.deleting")
 
-	return r.reportInstance(ctx, instance, "Deleting instance by request", true)
+	return r.saveAndReportInstance(ctx, instance, "Deleting instance by request", true)
 }
 
 func (r *Service) processDeleting(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
@@ -317,10 +274,5 @@ func (r *Service) processDeleting(ctx context.Context, instance *instancerepo.In
 
 	instance.Status = instancerepo.InstanceStatusDeleted
 
-	err = r.instanceRepo.SaveInstance(ctx, instance)
-	if err != nil {
-		return 0, errors.Wrap(err, "save instance")
-	}
-
-	return 0, r.reportInstance(ctx, instance, "Instance deleted", false)
+	return 0, r.saveAndReportInstance(ctx, instance, "Instance deleted", false)
 }

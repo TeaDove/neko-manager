@@ -24,5 +24,5 @@ Load: not used for = {{ call .Elapsed .Stats.LastUsageAt }}
 {{- if gt .Stats.TotalUsers 0 }}; total users = {{ .Stats.TotalUsers }}{{ end }}
 {{- if not .Stats.LastUserLeftAt.IsZero }}; last user left = {{ call .Elapsed .Stats.LastUserLeftAt }} ago{{ end }}
 {{- if gt .Stats.TotalAdmins 0 }}; total admins = {{ .Stats.TotalAdmins }}{{ end }}
-{{- if not .Stats.LastAdminLeftAt.IsZero }}; last admin left = {{ call .Elapsed .Stats.LastAdminLeftAt }} ago{{ end }}
-{{ end }}
+{{- if not .Stats.LastAdminLeftAt.IsZero }}; last admin left = {{ call .Elapsed .Stats.LastAdminLeftAt }} ago{{ end -}}
+{{ end -}}
