@@ -68,7 +68,7 @@ func (r *Service) reportInstance(
 
 	var msg any
 
-	if len(screenshot) != 0 {
+	if len(screenshot) == 0 {
 		msg = msgText
 	} else {
 		msg = &tele.Photo{Caption: msgText, File: tele.FromReader(bytes.NewReader(screenshot))}
