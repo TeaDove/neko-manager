@@ -19,10 +19,10 @@ Cloud: <a href="https://console.yandex.cloud/folders/{{ .Instance.CloudFolderID 
 {{ end -}}
 
 {{ if .Stats }}
-Load: not used for = {{ call .Elapsed .Stats.LastUsageAt }}
-{{- if .Stats.HasHost }}; host = <code>{{ .Stats.HostId }}</code>{{ end }}
-{{- if gt .Stats.TotalUsers 0 }}; total users = {{ .Stats.TotalUsers }}{{ end }}
-{{- if not .Stats.LastUserLeftAt.IsZero }}; last user left = {{ call .Elapsed .Stats.LastUserLeftAt }} ago{{ end }}
-{{- if gt .Stats.TotalAdmins 0 }}; total admins = {{ .Stats.TotalAdmins }}{{ end }}
-{{- if not .Stats.LastAdminLeftAt.IsZero }}; last admin left = {{ call .Elapsed .Stats.LastAdminLeftAt }} ago{{ end -}}
+Load: {{- if not .Stats.LastUsageAt.IsZero }} not used for = {{ call .Elapsed .Stats.LastUsageAt }};{{ end }}
+{{- if .Stats.HasHost }} host = <code>{{ .Stats.HostId }}</code>;{{ end }}
+{{- if gt .Stats.TotalUsers 0 }} total users = {{ .Stats.TotalUsers }};{{ end }}
+{{- if not .Stats.LastUserLeftAt.IsZero }} last user left = {{ call .Elapsed .Stats.LastUserLeftAt }} ago;{{ end }}
+{{- if gt .Stats.TotalAdmins 0 }} total admins = {{ .Stats.TotalAdmins }};{{ end }}
+{{- if not .Stats.LastAdminLeftAt.IsZero }} last admin left = {{ call .Elapsed .Stats.LastAdminLeftAt }} ago;{{ end -}}
 {{ end -}}

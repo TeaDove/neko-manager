@@ -30,6 +30,10 @@ type Stats struct {
 }
 
 func (r *Stats) LastUsageAt() time.Time {
+	if r.TotalUsers != 0 || r.TotalAdmins != 0 {
+		return time.Time{}
+	}
+
 	lastUsage := r.ServerStartedAt
 
 	if r.LastUserLeftAt.After(lastUsage) {

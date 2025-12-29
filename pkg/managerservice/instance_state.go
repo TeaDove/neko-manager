@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"neko-manager/pkg/instancerepo"
+	"neko-manager/pkg/nekosupplier"
 	"neko-manager/pkg/randutils"
 	"net"
 	"net/url"
@@ -190,27 +191,21 @@ func (r *Service) waitForNekoStart(ctx context.Context, instance *instancerepo.I
 	return 0, r.saveAndReportInstance(ctx, instance, "Neko ready!!!", true)
 }
 
-func (r *Service) requireDeletion(ctx context.Context, instance *instancerepo.Instance) (bool, error) {
-	stats, err := r.nekosupplier.GetStats(ctx, instance.IP, instance.SessionAPIToken)
-	if err != nil {
-		return false, errors.Wrap(err, "neko get stats")
-	}
-
+func requireDeletion(ctx context.Context, stats *nekosupplier.Stats) bool {
 	notUsedFor := time.Now().UTC().Sub(stats.LastUsageAt())
 
 	if stats.TotalUsers != 0 || stats.TotalAdmins != 0 {
 		zerolog.Ctx(ctx).Info().
 			Interface("stats", stats).
-			Str("not_used_for", time_utils.RoundDuration(notUsedFor)).
 			Msg("neko.instance.using")
 
-		return false, nil
+		return false
 	}
 
 	const maxIdle = time.Minute * 10
 
 	if notUsedFor > maxIdle {
-		return true, nil
+		return true
 	}
 
 	zerolog.Ctx(ctx).Info().
@@ -218,7 +213,7 @@ func (r *Service) requireDeletion(ctx context.Context, instance *instancerepo.In
 		Str("not_used_for", time_utils.RoundDuration(notUsedFor)).
 		Msg("neko.instance.no.users")
 
-	return false, nil
+	return false
 }
 
 func requireRegularReport(instance *instancerepo.Instance) bool {
@@ -229,12 +224,12 @@ func requireRegularReport(instance *instancerepo.Instance) bool {
 func (r *Service) processRunning(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
 	r.proxy.SetTarget(&url.URL{Scheme: "http", Host: instance.IP})
 
-	ok, err := r.requireDeletion(ctx, instance)
+	stats, err := r.nekosupplier.GetStats(ctx, instance.IP, instance.SessionAPIToken)
 	if err != nil {
-		return 0, errors.Wrap(err, "require deletion")
+		return 0, errors.Wrap(err, "neko get stats")
 	}
 
-	if !ok {
+	if !requireDeletion(ctx, &stats) {
 		if requireRegularReport(instance) {
 			instance.UpdatedAt = time.Now().UTC()
 

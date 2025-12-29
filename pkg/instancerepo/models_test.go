@@ -37,6 +37,7 @@ func TestRepr(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, repr)
 
+	println(repr)
 	//nolint: lll // Is string
 	assert.Equal(t, `🐈‍⬛ Neko instance &lt;<code>gyqlvj</code>&gt; (@TeaDove)
 <b>✅ Running ✅</b>
@@ -50,5 +51,5 @@ IP: 158.160.84.42
 SSH: <code>ssh -oStrictHostKeyChecking=no -i ~/.ssh/id_rsa_yc -v neko@158.160.84.42</code>
 Cloud: <a href="https://console.yandex.cloud/folders/b1gt2lbgae1f073bjo0u/compute/instance/epdec5ei91e5aeg732ok/overview">yc</a>
 
-Load: not used for = 3m; host = <code>SOME-HOST</code>; total users = 3; last admin left = 3m ago`, repr)
+Load: host = <code>SOME-HOST</code>; total users = 3; last admin left = 3m ago;`, repr)
 }

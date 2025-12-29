@@ -62,6 +62,10 @@ func (r *Instance) Repr(stats *nekosupplier.Stats) (string, error) {
 		"Instance": r,
 		"Stats":    stats,
 		"Elapsed": func(v time.Time) string {
+			if v.IsZero() {
+				return "never"
+			}
+
 			return time_utils.RoundDuration(time.Since(v))
 		},
 	},

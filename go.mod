@@ -4,18 +4,17 @@ go 1.25
 
 require (
 	github.com/deckarep/golang-set/v2 v2.8.0
-	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.11.1
 	github.com/teadove/teasutils/service_utils v0.1.1
 	github.com/teadove/teasutils/utils v0.3.0
-	github.com/teadove/terx v0.0.7
 	github.com/yandex-cloud/go-genproto v0.43.0
 	github.com/yandex-cloud/go-sdk/services/compute v1.0.30
 	github.com/yandex-cloud/go-sdk/services/vpc v0.0.25
 	github.com/yandex-cloud/go-sdk/v2 v2.37.0
 	google.golang.org/grpc v1.78.0
+	gopkg.in/telebot.v4 v4.0.0-beta.7
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
 )
@@ -29,6 +28,7 @@ require (
 	github.com/caarlos0/env/v11 v11.3.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/fatih/color v1.18.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang/mock v1.6.0 // indirect
@@ -71,7 +71,6 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20251222181119-0a764e51fe1b // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251222181119-0a764e51fe1b // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
-	gopkg.in/telebot.v4 v4.0.0-beta.7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
