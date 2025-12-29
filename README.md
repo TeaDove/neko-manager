@@ -18,4 +18,5 @@ If no users are present on instance, manager will delete it.
 1. Setup speed: ~4-5 minutes from `/request` command to watching films with your friends. (Can be faster, but I didn't manage to do it)
 2. Remove unused instances, if no users are present on neko, it will be deleted in 10 minutes.
 3. Cheap! One 3 hours watching session cost me ~10 rubles, (~0.13 USD), which means watching films every other day would cost only 2 dollars :)
+
 ![pricing.png|300](pricing.png)
