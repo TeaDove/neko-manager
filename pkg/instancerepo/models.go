@@ -31,7 +31,7 @@ type Instance struct {
 	CloudFolderID   string `gorm:"not null"`
 	ProxyURL        *string
 	CloudInstanceID *string
-	ResourceSize    ResourcesSize `gorm:"not null;type:string;default:m"`
+	ResourceSize    ResourcesSize `gorm:"not null;type:string"`
 }
 
 func (r *Instance) MarshalZerologObject(e *zerolog.Event) {
