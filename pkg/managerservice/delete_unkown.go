@@ -16,8 +16,11 @@ func (r *Service) DeleteUnknown(ctx context.Context) error {
 	}
 
 	knownInstancesID := mapset.NewThreadUnsafeSet[string]()
+
 	for _, instance := range instances {
-		knownInstancesID.Add(instance.CloudInstanceID)
+		if instance.CloudInstanceID != nil {
+			knownInstancesID.Add(*instance.CloudInstanceID)
+		}
 	}
 
 	cloudInstances, err := r.cloudSupplier.ComputeList(ctx, instancerepo.NEKO)

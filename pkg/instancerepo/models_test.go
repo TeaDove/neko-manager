@@ -13,6 +13,8 @@ import (
 func TestRepr(t *testing.T) {
 	t.Parallel()
 
+	stringPtr := func(s string) *string { return &s }
+
 	instance := Instance{
 		ID:              "gyqlvj",
 		Status:          InstanceStatusRunning,
@@ -22,9 +24,9 @@ func TestRepr(t *testing.T) {
 		TGChatID:        418878871,
 		SessionAPIToken: rand.Text(),
 		CloudFolderID:   "b1gt2lbgae1f073bjo0u",
-		CloudInstanceID: "epdec5ei91e5aeg732ok",
-		IP:              "158.160.84.42",
-		ProxyURL:        "https://kodiki-hack.ru:8080",
+		CloudInstanceID: stringPtr("epdec5ei91e5aeg732ok"),
+		IP:              stringPtr("158.160.84.42"),
+		ProxyURL:        stringPtr("https://kodiki-hack.ru:8080"),
 	}
 
 	repr, err := instance.Repr(&nekosupplier.Stats{

@@ -18,30 +18,32 @@ type Instance struct {
 	ID        string    `gorm:"primaryKey"`
 	CreatedAt time.Time `gorm:"not null;autoCreateTime;not null"`
 
+	LastHealthOk *time.Time
+	UpdatedAt    time.Time      `gorm:"not null;autoUpdateTime"`
+	Status       InstanceStatus `gorm:"not null;type:string;index"`
+
 	CreatedBy      string `gorm:"not null"`
 	TGChatID       int64  `gorm:"not null"`
-	TGThreadChatID int
-
-	UpdatedAt time.Time      `gorm:"not null;autoUpdateTime"`
-	Status    InstanceStatus `gorm:"not null;type:string;index"`
+	TGThreadChatID *int
 
 	SessionAPIToken string `gorm:"not null"`
-	IP              string
+	IP              *string
 	CloudFolderID   string `gorm:"not null"`
-	ProxyURL        string
-	CloudInstanceID string
+	ProxyURL        *string
+	CloudInstanceID *string
+	ResourceSize    ResourcesSize `gorm:"not null;type:string;default:m"`
 }
 
 func (r *Instance) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("id", r.ID).
 		Stringer("status", r.Status)
 
-	if r.CloudInstanceID != "" {
-		e.Str("cloud_instance_id", r.CloudInstanceID)
+	if r.CloudInstanceID != nil {
+		e.Str("cloud_instance_id", *r.CloudInstanceID)
 	}
 
-	if r.IP != "" {
-		e.Str("ip", r.IP)
+	if r.IP != nil {
+		e.Str("ip", *r.IP)
 	}
 }
 
@@ -78,9 +80,9 @@ func (r *Instance) Repr(stats *nekosupplier.Stats) (string, error) {
 }
 
 // InstanceStatus
-// ENUM(Creating, Started, Running, Deleting, Deleted)
+// ENUM(Creating, Started, Restarting, Running, Deleting, Deleted)
 //
-//go:generate go tool go-enum --sql --marshal -f models.go
+//go:generate go tool go-enum --sql --marshal --names -f models.go
 type InstanceStatus int //nolint: recvcheck // codegen :(
 
 func (s InstanceStatus) EmojiStatus() string {
@@ -92,8 +94,12 @@ func (s InstanceStatus) EmojiStatus() string {
 	case InstanceStatusDeleting:
 		emoji = "❌"
 	default:
-		emoji = "🪧"
+		emoji = "⚠️"
 	}
 
 	return fmt.Sprintf("%s %s %s", emoji, s.String(), emoji)
 }
+
+// ResourcesSize
+// ENUM(s, m, l).
+type ResourcesSize int //nolint: recvcheck // codegen :(

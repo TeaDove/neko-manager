@@ -20,8 +20,9 @@ import (
 func (r *Service) RequestInstance(
 	ctx context.Context,
 	tgChatID int64,
-	threadChatID int,
+	threadChatID *int,
 	createdBy string,
+	resourceSpec instancerepo.ResourcesSize,
 ) (instancerepo.Instance, error) {
 	instance := instancerepo.Instance{
 		ID:              randutils.RandomString(6),
@@ -31,9 +32,10 @@ func (r *Service) RequestInstance(
 		TGThreadChatID:  threadChatID,
 		SessionAPIToken: rand.Text(),
 		CloudFolderID:   r.cloudSupplier.FolderID,
+		ResourceSize:    resourceSpec,
 	}
 	if r.proxy.URL != "" {
-		instance.ProxyURL = r.proxy.URL
+		instance.ProxyURL = &r.proxy.URL
 	}
 
 	ctx = logger_utils.WithValue(ctx, "instance_id", instance.ID)
@@ -43,7 +45,7 @@ func (r *Service) RequestInstance(
 		return instancerepo.Instance{}, errors.Wrap(err, "save instance")
 	}
 
-	go r.HandleInstance(logger_utils.NewLoggedCtx(), &instance)
+	go r.HandleInstance(&instance)
 
 	zerolog.Ctx(ctx).
 		Info().
@@ -59,15 +61,17 @@ func (r *Service) Reconciliation(ctx context.Context) error {
 	}
 
 	for _, instance := range instances {
-		go r.HandleInstance(ctx, &instance)
+		go r.HandleInstance(&instance)
 	}
 
 	return nil
 }
 
-func (r *Service) HandleInstance(ctx context.Context, instance *instancerepo.Instance) {
+func (r *Service) HandleInstance(instance *instancerepo.Instance) {
 	instanceID := instance.ID
-	ctx = logger_utils.WithValue(ctx, "instance_id", instanceID)
+
+	ctx, cancel := context.WithCancel(logger_utils.WithValue(logger_utils.NewLoggedCtx(), "instance_id", instanceID))
+	defer cancel()
 
 	zerolog.Ctx(ctx).
 		Info().
@@ -78,15 +82,11 @@ func (r *Service) HandleInstance(ctx context.Context, instance *instancerepo.Ins
 		err error
 	)
 
-	const (
-		sleepOnErrDuration = 5 * time.Second
-	)
-
 	for {
 		instance, err = r.instanceRepo.GetInstance(ctx, instanceID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Stack().Err(err).Msg("failed.to.get.instance")
-			time.Sleep(sleepOnErrDuration)
+			time.Sleep(r.sleepOnErrDuration)
 
 			continue
 		}
@@ -102,7 +102,7 @@ func (r *Service) HandleInstance(ctx context.Context, instance *instancerepo.Ins
 				Stack().Err(err).
 				Object("instance", instance).
 				Msg("failed.to.process.instance.state")
-			time.Sleep(sleepOnErrDuration)
+			time.Sleep(r.sleepOnErrDuration)
 
 			continue
 		}
@@ -123,6 +123,8 @@ func (r *Service) processInstanceStatus(ctx context.Context, instance *instancer
 		return r.createInstance(ctx, instance)
 	case instancerepo.InstanceStatusStarted:
 		return r.waitForNekoStart(ctx, instance)
+	case instancerepo.InstanceStatusRestarting:
+		return r.processRestarting(ctx, instance)
 	case instancerepo.InstanceStatusRunning:
 		return r.processRunning(ctx, instance)
 	case instancerepo.InstanceStatusDeleting:
@@ -141,6 +143,7 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 		instance.CloudName(),
 		instance.CreatedBy,
 		instance.SessionAPIToken,
+		r.sizeToSpec[instance.ResourceSize],
 	)
 	if err != nil {
 		return 0, errors.Wrap(err, "compute create")
@@ -155,7 +158,7 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 		return time.Second * 3, nil
 	}
 
-	instance.CloudInstanceID = cloudInstanceID
+	instance.CloudInstanceID = &cloudInstanceID
 
 	address := net.ParseIP(
 		computeState.GetNetworkInterfaces()[0].GetPrimaryV4Address().GetOneToOneNat().GetAddress(),
@@ -164,7 +167,8 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 		return time.Second * 3, nil
 	}
 
-	instance.IP = address.String()
+	ip := address.String()
+	instance.IP = &ip
 	instance.Status = instancerepo.InstanceStatusStarted
 
 	return 0, r.saveAndReportInstance(
@@ -176,8 +180,13 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 }
 
 func (r *Service) waitForNekoStart(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
-	_, err := r.nekosupplier.GetStats(ctx, instance.IP, instance.SessionAPIToken)
+	_, err := r.nekosupplier.GetStats(ctx, *instance.IP, instance.SessionAPIToken)
 	if err != nil {
+		if r.restartOnErrRequired(instance) {
+			instance.Status = instancerepo.InstanceStatusRestarting
+			return 0, r.saveAndReportInstance(ctx, instance, "Restarting neko, because it died", true)
+		}
+
 		zerolog.Ctx(ctx).
 			Warn().
 			Err(err).
@@ -186,13 +195,15 @@ func (r *Service) waitForNekoStart(ctx context.Context, instance *instancerepo.I
 		return time.Second * 10, nil
 	}
 
+	now := time.Now()
+	instance.LastHealthOk = &now
 	instance.Status = instancerepo.InstanceStatusRunning
 
 	return 0, r.saveAndReportInstance(ctx, instance, "Neko ready!!!", true)
 }
 
 func requireDeletion(ctx context.Context, stats *nekosupplier.Stats) bool {
-	notUsedFor := time.Now().UTC().Sub(stats.LastUsageAt())
+	notUsedFor := time.Since(stats.LastUsageAt())
 
 	if stats.TotalUsers != 0 || stats.TotalAdmins != 0 {
 		zerolog.Ctx(ctx).Info().
@@ -202,7 +213,7 @@ func requireDeletion(ctx context.Context, stats *nekosupplier.Stats) bool {
 		return false
 	}
 
-	const maxIdle = time.Minute * 10
+	const maxIdle = time.Minute * 6
 
 	if notUsedFor > maxIdle {
 		return true
@@ -222,11 +233,24 @@ func requireRegularReport(instance *instancerepo.Instance) bool {
 }
 
 func (r *Service) processRunning(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
-	r.proxy.SetTarget(&url.URL{Scheme: "http", Host: instance.IP})
+	r.proxy.SetTarget(&url.URL{Scheme: "http", Host: *instance.IP})
 
-	stats, err := r.nekosupplier.GetStats(ctx, instance.IP, instance.SessionAPIToken)
+	stats, err := r.nekosupplier.GetStats(ctx, *instance.IP, instance.SessionAPIToken)
 	if err != nil {
+		if r.restartOnErrRequired(instance) {
+			instance.Status = instancerepo.InstanceStatusRestarting
+			return 0, r.saveAndReportInstance(ctx, instance, "Restarting neko, because no connection", true)
+		}
+
 		return 0, errors.Wrap(err, "neko get stats")
+	}
+
+	now := time.Now()
+	instance.LastHealthOk = &now
+
+	err = r.instanceRepo.SaveInstance(ctx, instance)
+	if err != nil {
+		return 0, errors.Wrap(err, "save instance")
 	}
 
 	if !requireDeletion(ctx, &stats) {
@@ -267,7 +291,7 @@ func (r *Service) Delete(ctx context.Context, instanceID string) error {
 }
 
 func (r *Service) processDeleting(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
-	err := r.cloudSupplier.ComputeDeleteWaited(ctx, instance.CloudInstanceID)
+	err := r.cloudSupplier.ComputeDeleteWaited(ctx, *instance.CloudInstanceID)
 	if err != nil {
 		return 0, errors.Wrap(err, "compute delete")
 	}

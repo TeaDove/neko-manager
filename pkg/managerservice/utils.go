@@ -16,6 +16,12 @@ func (r *Service) saveAndReportInstance(
 	instance *instancerepo.Instance,
 	text string,
 	withStats bool) error {
+	zerolog.Ctx(ctx).
+		Info().
+		Object("instance", instance).
+		Str("text", text).
+		Msg("instance.reporting")
+
 	err := r.instanceRepo.SaveInstance(ctx, instance)
 	if err != nil {
 		return errors.Wrap(err, "save instance")
@@ -39,8 +45,8 @@ func (r *Service) MakeTGReport(
 		statsPtr   *nekosupplier.Stats
 		screenshot []byte
 	)
-	if withStats && instance.IP != "" {
-		stats, err := r.nekosupplier.GetStats(ctx, instance.IP, instance.SessionAPIToken)
+	if withStats && instance.IP != nil {
+		stats, err := r.nekosupplier.GetStats(ctx, *instance.IP, instance.SessionAPIToken)
 		if err == nil {
 			statsPtr = &stats
 		} else {
@@ -49,7 +55,7 @@ func (r *Service) MakeTGReport(
 				Msg("failed.to.get.stats")
 		}
 
-		screenshot, err = r.nekosupplier.GetScreenshot(ctx, instance.IP, instance.SessionAPIToken)
+		screenshot, err = r.nekosupplier.GetScreenshot(ctx, *instance.IP, instance.SessionAPIToken)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().
 				Stack().Err(err).
@@ -84,11 +90,12 @@ func (r *Service) reportInstance(
 		return errors.Wrap(err, "make tgreport")
 	}
 
-	_, err = r.bot.Send(
-		tele.ChatID(instance.TGChatID),
-		msg,
-		&tele.SendOptions{ThreadID: instance.TGThreadChatID, ParseMode: tele.ModeHTML},
-	)
+	opts := &tele.SendOptions{ParseMode: tele.ModeHTML}
+	if instance.TGThreadChatID != nil {
+		opts.ThreadID = *instance.TGThreadChatID
+	}
+
+	_, err = r.bot.Send(tele.ChatID(instance.TGChatID), msg, opts)
 	if err != nil {
 		return errors.Wrap(err, "send tg message")
 	}

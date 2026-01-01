@@ -3,5 +3,5 @@ docker-update:
 	docker compose up -d --build
 	docker compose logs -f
 
-tests:
+test:
 	gotestsum --format-hide-empty-pkg -- ./... --race

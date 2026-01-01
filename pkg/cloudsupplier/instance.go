@@ -21,6 +21,7 @@ func (r *Supplier) ComputeCreateWaited(
 	name string,
 	createdBy string,
 	sessionAPIToken string,
+	resourcesSpec *compute.ResourcesSpec,
 ) (string, error) {
 	latestImageResp, err := computesdk.NewImageClient(r.sdk).
 		GetLatestByFamily(ctx, &compute.GetImageLatestByFamilyRequest{
@@ -64,13 +65,9 @@ func (r *Supplier) ComputeCreateWaited(
 				Source:      &compute.AttachedDiskSpec_DiskSpec_ImageId{ImageId: latestImageResp.GetId()},
 			}},
 		},
-		PlatformId: "standard-v4a", // standard-v3
-		ResourcesSpec: &compute.ResourcesSpec{
-			Memory:       1024 * 1024 * 1024 * 4,
-			Cores:        4,
-			CoreFraction: 100,
-		},
-		Hostname: name,
+		PlatformId:    "standard-v4a", // standard-v3
+		ResourcesSpec: resourcesSpec,
+		Hostname:      name,
 		Metadata: map[string]string{
 			"docker-compose": dockerCompose.String(),
 			"user-data": fmt.Sprintf(
@@ -120,7 +117,7 @@ func (r *Supplier) ComputeGet(ctx context.Context, name string) (*compute.Instan
 	}
 
 	if len(resp.GetInstances()) == 0 {
-		return nil, errors.Errorf("instance not found: %s", name)
+		return nil, status.New(codes.NotFound, fmt.Sprintf("instance not found: %s", name)).Err()
 	}
 
 	return resp.GetInstances()[0], nil
@@ -166,6 +163,24 @@ func (r *Supplier) ComputeDeleteWaited(ctx context.Context, cloudId string) erro
 	zerolog.Ctx(ctx).Info().
 		Str("cloud_instance_id", cloudId).
 		Msg("cloud.instance.deleted")
+
+	return nil
+}
+
+func (r *Supplier) ComputeRestartWaited(ctx context.Context, cloudId string) error {
+	operation, err := r.computeSDK.Restart(ctx, &compute.RestartInstanceRequest{InstanceId: cloudId})
+	if err != nil {
+		return errors.Wrap(err, "restart")
+	}
+
+	_, err = operation.Wait(ctx)
+	if err != nil {
+		return errors.Wrap(err, "wait")
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Str("cloud_instance_id", cloudId).
+		Msg("cloud.instance.restarted")
 
 	return nil
 }

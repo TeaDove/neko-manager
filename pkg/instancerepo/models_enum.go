@@ -9,6 +9,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -16,6 +17,8 @@ const (
 	InstanceStatusCreating InstanceStatus = iota
 	// InstanceStatusStarted is a InstanceStatus of type Started.
 	InstanceStatusStarted
+	// InstanceStatusRestarting is a InstanceStatus of type Restarting.
+	InstanceStatusRestarting
 	// InstanceStatusRunning is a InstanceStatus of type Running.
 	InstanceStatusRunning
 	// InstanceStatusDeleting is a InstanceStatus of type Deleting.
@@ -24,16 +27,33 @@ const (
 	InstanceStatusDeleted
 )
 
-var ErrInvalidInstanceStatus = errors.New("not a valid InstanceStatus")
+var ErrInvalidInstanceStatus = fmt.Errorf("not a valid InstanceStatus, try [%s]", strings.Join(_InstanceStatusNames, ", "))
 
-const _InstanceStatusName = "CreatingStartedRunningDeletingDeleted"
+const _InstanceStatusName = "CreatingStartedRestartingRunningDeletingDeleted"
+
+var _InstanceStatusNames = []string{
+	_InstanceStatusName[0:8],
+	_InstanceStatusName[8:15],
+	_InstanceStatusName[15:25],
+	_InstanceStatusName[25:32],
+	_InstanceStatusName[32:40],
+	_InstanceStatusName[40:47],
+}
+
+// InstanceStatusNames returns a list of possible string values of InstanceStatus.
+func InstanceStatusNames() []string {
+	tmp := make([]string, len(_InstanceStatusNames))
+	copy(tmp, _InstanceStatusNames)
+	return tmp
+}
 
 var _InstanceStatusMap = map[InstanceStatus]string{
-	InstanceStatusCreating: _InstanceStatusName[0:8],
-	InstanceStatusStarted:  _InstanceStatusName[8:15],
-	InstanceStatusRunning:  _InstanceStatusName[15:22],
-	InstanceStatusDeleting: _InstanceStatusName[22:30],
-	InstanceStatusDeleted:  _InstanceStatusName[30:37],
+	InstanceStatusCreating:   _InstanceStatusName[0:8],
+	InstanceStatusStarted:    _InstanceStatusName[8:15],
+	InstanceStatusRestarting: _InstanceStatusName[15:25],
+	InstanceStatusRunning:    _InstanceStatusName[25:32],
+	InstanceStatusDeleting:   _InstanceStatusName[32:40],
+	InstanceStatusDeleted:    _InstanceStatusName[40:47],
 }
 
 // String implements the Stringer interface.
@@ -54,9 +74,10 @@ func (x InstanceStatus) IsValid() bool {
 var _InstanceStatusValue = map[string]InstanceStatus{
 	_InstanceStatusName[0:8]:   InstanceStatusCreating,
 	_InstanceStatusName[8:15]:  InstanceStatusStarted,
-	_InstanceStatusName[15:22]: InstanceStatusRunning,
-	_InstanceStatusName[22:30]: InstanceStatusDeleting,
-	_InstanceStatusName[30:37]: InstanceStatusDeleted,
+	_InstanceStatusName[15:25]: InstanceStatusRestarting,
+	_InstanceStatusName[25:32]: InstanceStatusRunning,
+	_InstanceStatusName[32:40]: InstanceStatusDeleting,
+	_InstanceStatusName[40:47]: InstanceStatusDeleted,
 }
 
 // ParseInstanceStatus attempts to convert a string to a InstanceStatus.
@@ -161,5 +182,163 @@ func (x *InstanceStatus) Scan(value interface{}) (err error) {
 
 // Value implements the driver Valuer interface.
 func (x InstanceStatus) Value() (driver.Value, error) {
+	return x.String(), nil
+}
+
+const (
+	// ResourcesSizeS is a ResourcesSize of type S.
+	ResourcesSizeS ResourcesSize = iota
+	// ResourcesSizeM is a ResourcesSize of type M.
+	ResourcesSizeM
+	// ResourcesSizeL is a ResourcesSize of type L.
+	ResourcesSizeL
+)
+
+var ErrInvalidResourcesSize = fmt.Errorf("not a valid ResourcesSize, try [%s]", strings.Join(_ResourcesSizeNames, ", "))
+
+const _ResourcesSizeName = "sml"
+
+var _ResourcesSizeNames = []string{
+	_ResourcesSizeName[0:1],
+	_ResourcesSizeName[1:2],
+	_ResourcesSizeName[2:3],
+}
+
+// ResourcesSizeNames returns a list of possible string values of ResourcesSize.
+func ResourcesSizeNames() []string {
+	tmp := make([]string, len(_ResourcesSizeNames))
+	copy(tmp, _ResourcesSizeNames)
+	return tmp
+}
+
+var _ResourcesSizeMap = map[ResourcesSize]string{
+	ResourcesSizeS: _ResourcesSizeName[0:1],
+	ResourcesSizeM: _ResourcesSizeName[1:2],
+	ResourcesSizeL: _ResourcesSizeName[2:3],
+}
+
+// String implements the Stringer interface.
+func (x ResourcesSize) String() string {
+	if str, ok := _ResourcesSizeMap[x]; ok {
+		return str
+	}
+	return fmt.Sprintf("ResourcesSize(%d)", x)
+}
+
+// IsValid provides a quick way to determine if the typed value is
+// part of the allowed enumerated values
+func (x ResourcesSize) IsValid() bool {
+	_, ok := _ResourcesSizeMap[x]
+	return ok
+}
+
+var _ResourcesSizeValue = map[string]ResourcesSize{
+	_ResourcesSizeName[0:1]: ResourcesSizeS,
+	_ResourcesSizeName[1:2]: ResourcesSizeM,
+	_ResourcesSizeName[2:3]: ResourcesSizeL,
+}
+
+// ParseResourcesSize attempts to convert a string to a ResourcesSize.
+func ParseResourcesSize(name string) (ResourcesSize, error) {
+	if x, ok := _ResourcesSizeValue[name]; ok {
+		return x, nil
+	}
+	return ResourcesSize(0), fmt.Errorf("%s is %w", name, ErrInvalidResourcesSize)
+}
+
+// MarshalText implements the text marshaller method.
+func (x ResourcesSize) MarshalText() ([]byte, error) {
+	return []byte(x.String()), nil
+}
+
+// UnmarshalText implements the text unmarshaller method.
+func (x *ResourcesSize) UnmarshalText(text []byte) error {
+	name := string(text)
+	tmp, err := ParseResourcesSize(name)
+	if err != nil {
+		return err
+	}
+	*x = tmp
+	return nil
+}
+
+// AppendText appends the textual representation of itself to the end of b
+// (allocating a larger slice if necessary) and returns the updated slice.
+//
+// Implementations must not retain b, nor mutate any bytes within b[:len(b)].
+func (x *ResourcesSize) AppendText(b []byte) ([]byte, error) {
+	return append(b, x.String()...), nil
+}
+
+var errResourcesSizeNilPtr = errors.New("value pointer is nil") // one per type for package clashes
+
+// Scan implements the Scanner interface.
+func (x *ResourcesSize) Scan(value interface{}) (err error) {
+	if value == nil {
+		*x = ResourcesSize(0)
+		return
+	}
+
+	// A wider range of scannable types.
+	// driver.Value values at the top of the list for expediency
+	switch v := value.(type) {
+	case int64:
+		*x = ResourcesSize(v)
+	case string:
+		*x, err = ParseResourcesSize(v)
+	case []byte:
+		*x, err = ParseResourcesSize(string(v))
+	case ResourcesSize:
+		*x = v
+	case int:
+		*x = ResourcesSize(v)
+	case *ResourcesSize:
+		if v == nil {
+			return errResourcesSizeNilPtr
+		}
+		*x = *v
+	case uint:
+		*x = ResourcesSize(v)
+	case uint64:
+		*x = ResourcesSize(v)
+	case *int:
+		if v == nil {
+			return errResourcesSizeNilPtr
+		}
+		*x = ResourcesSize(*v)
+	case *int64:
+		if v == nil {
+			return errResourcesSizeNilPtr
+		}
+		*x = ResourcesSize(*v)
+	case float64: // json marshals everything as a float64 if it's a number
+		*x = ResourcesSize(v)
+	case *float64: // json marshals everything as a float64 if it's a number
+		if v == nil {
+			return errResourcesSizeNilPtr
+		}
+		*x = ResourcesSize(*v)
+	case *uint:
+		if v == nil {
+			return errResourcesSizeNilPtr
+		}
+		*x = ResourcesSize(*v)
+	case *uint64:
+		if v == nil {
+			return errResourcesSizeNilPtr
+		}
+		*x = ResourcesSize(*v)
+	case *string:
+		if v == nil {
+			return errResourcesSizeNilPtr
+		}
+		*x, err = ParseResourcesSize(*v)
+	}
+
+	return
+}
+
+// Value implements the driver Valuer interface.
+func (x ResourcesSize) Value() (driver.Value, error) {
 	return x.String(), nil
 }

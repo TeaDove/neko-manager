@@ -2,8 +2,11 @@ package tgbotpresentation
 
 import (
 	"context"
+	"fmt"
+	"neko-manager/pkg/instancerepo"
 	"neko-manager/pkg/managerservice"
 	"neko-manager/pkg/nekosupplier"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -84,9 +87,12 @@ func (r *Presentation) Run(ctx context.Context) {
 	handlers.Use(middleware.Whitelist(r.allowedChats...))
 
 	handlers.Handle("/start", func(c tele.Context) error {
-		return c.Reply(
-			"Help:\n/request - creates neko instance\n/list - lists active instances\n/delete &lt;id&gt; - deletes instance",
-		)
+		return c.Reply(fmt.Sprintf(
+			`Help:
+/request [%s]- creates neko instance
+/list - lists active instances
+/delete &lt;id&gt; - deletes instance"`,
+			strings.Join(instancerepo.ResourcesSizeNames(), ", ")))
 	})
 
 	handlers.Handle("/request", r.cmdRequest)
@@ -101,7 +107,25 @@ func (r *Presentation) Run(ctx context.Context) {
 }
 
 func (r *Presentation) cmdRequest(c tele.Context) error {
-	_, err := r.managerService.RequestInstance(GetOrSetCtx(c), c.Chat().ID, c.ThreadID(), c.Sender().Username)
+	var (
+		resourceSize = instancerepo.ResourcesSizeM
+		err          error
+	)
+	if len(c.Args()) != 0 {
+		resourceSize, err = instancerepo.ParseResourcesSize(c.Args()[0])
+		if err != nil {
+			return c.Reply("Wrong resource size, allowed are: " + strings.Join(instancerepo.ResourcesSizeNames(), ", "))
+		}
+	}
+
+	var threadId *int
+
+	if c.ThreadID() != 0 {
+		threadIdV := c.ThreadID()
+		threadId = &threadIdV
+	}
+
+	_, err = r.managerService.RequestInstance(GetOrSetCtx(c), c.Chat().ID, threadId, c.Sender().Username, resourceSize)
 	if err != nil {
 		return errors.Wrap(err, "request instance")
 	}
@@ -138,7 +162,7 @@ func (r *Presentation) cmdList(c tele.Context) error {
 
 func (r *Presentation) cmdDelete(c tele.Context) error {
 	if len(c.Args()) != 1 {
-		return c.Reply("Usage: /delete <id>")
+		return c.Reply("Usage: /delete <id>", tele.ModeDefault)
 	}
 
 	instanceID := c.Args()[0]
