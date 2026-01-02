@@ -50,7 +50,7 @@ func (r *Proxy) MakeSTDProxy(ctx context.Context) *httputil.ReverseProxy {
 
 	zerolog.Ctx(ctx).
 		Info().
-		Msg("making.reverse.proxy")
+		Msg("reverse.proxy.created")
 
 	return &reverseProxy
 }
