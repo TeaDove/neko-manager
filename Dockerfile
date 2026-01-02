@@ -4,11 +4,14 @@ WORKDIR /src
 
 ENV CGO_ENABLED=1
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 COPY . .
 
-RUN go build -o=bootstrap -v main.go
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    go build -trimpath -o=bootstrap -v main.go
 
 FROM gcr.io/distroless/base-debian13:latest
 
