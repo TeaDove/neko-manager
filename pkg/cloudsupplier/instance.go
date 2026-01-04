@@ -36,7 +36,7 @@ func (r *Supplier) ComputeCreateWaited(
 
 	err = r.nekoDockerComposeTemplate.Execute(&dockerCompose, map[string]any{
 		"sessionAPIToken": sessionAPIToken,
-		"pathPrefix":      fmt.Sprintf("/%s", id),
+		"pathPrefix":      fmt.Sprintf("/%s/", id),
 	})
 	if err != nil {
 		return "", errors.Wrap(err, "execute neko template")
