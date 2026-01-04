@@ -42,11 +42,14 @@ func (r *Proxy) GetProxyURL() *string {
 	return &r.baseURL
 }
 
+const stub = "stub"
+
 func (r *Proxy) AddTarget(id string, target *url.URL) {
 	r.targetsMU.Lock()
 	defer r.targetsMU.Unlock()
 
-	r.targets[id] = *target
+	// r.targets[id] = *target
+	r.targets[stub] = *target
 }
 
 func (r *Proxy) DeleteTarget(path string) {
@@ -56,17 +59,17 @@ func (r *Proxy) DeleteTarget(path string) {
 	delete(r.targets, path)
 }
 
-func (r *Proxy) getTarget(path string) *url.URL {
-	if len(path) < r.idLen+1 {
-		return &r.notFound
-	}
-
-	id := path[1 : r.idLen+1]
-
+func (r *Proxy) getTarget(_path string) *url.URL {
+	// if len(path) < r.idLen+1 {
+	//	return &r.notFound
+	//}
+	//
+	// id := path[1 : r.idLen+1]
 	r.targetsMU.RLock()
 	defer r.targetsMU.RUnlock()
 
-	target, ok := r.targets[id]
+	// target, ok := r.targets[id]
+	target, ok := r.targets[stub]
 	if !ok {
 		return &r.notFound
 	}

@@ -45,10 +45,10 @@ func TestRepr(t *testing.T) {
 <b>✅ Running ✅</b>
 Alive for 15m
 
-User login: https://kodiki-hack.ru:8080/gyqlvj/?pwd=neko
-Admin login: https://kodiki-hack.ru:8080/gyqlvj/?pwd=admin
-<span class="tg-spoiler">User login unsecure: http://158.160.84.42/gyqlvj/?pwd=neko
-Admin login unsecure: http://158.160.84.42/gyqlvj/?pwd=admin</span>
+User login: https://kodiki-hack.ru:8080?pwd=neko
+Admin login: https://kodiki-hack.ru:8080?pwd=admin
+<span class="tg-spoiler">User login unsecure: http://158.160.84.42?pwd=neko
+Admin login unsecure: http://158.160.84.42?pwd=admin</span>
 IP: 158.160.84.42
 SSH: <code>ssh -oStrictHostKeyChecking=no -i ~/.ssh/id_rsa_yc -v neko@158.160.84.42</code>
 Cloud: <a href="https://console.yandex.cloud/folders/b1gt2lbgae1f073bjo0u/compute/instance/epdec5ei91e5aeg732ok/overview">yc</a>

@@ -12,6 +12,7 @@ import (
 
 func TestGetTarget(t *testing.T) {
 	t.Parallel()
+	t.Skip("Потому что откатили фичу")
 
 	idLen := 6
 	r := New(idLen, "http://localhost:8080")
