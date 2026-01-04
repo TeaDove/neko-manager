@@ -22,6 +22,8 @@ type Service struct {
 	sleepOnErrDuration   time.Duration
 	restartOnErrDuration time.Duration
 	sizeToSpec           map[instancerepo.ResourcesSize]*compute.ResourcesSpec
+	proxyURL             string
+	idLen                int
 }
 
 func New(
@@ -30,6 +32,8 @@ func New(
 	bot *tele.Bot,
 	nekosupplier *nekosupplier.Supplier,
 	proxy *nekoproxy.Proxy,
+	proxyURL string,
+	idLen int,
 ) *Service {
 	return &Service{
 		instanceRepo:         instanceRepo,
@@ -37,6 +41,8 @@ func New(
 		bot:                  bot,
 		nekosupplier:         nekosupplier,
 		proxy:                proxy,
+		idLen:                idLen,
+		proxyURL:             proxyURL,
 		sleepOnErrDuration:   5 * time.Second,
 		restartOnErrDuration: 7 * time.Minute,
 		sizeToSpec: map[instancerepo.ResourcesSize]*compute.ResourcesSpec{

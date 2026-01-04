@@ -20,6 +20,8 @@ type baseSettings struct {
 	ProxyURL string `env:"PROXY_URL"` // https://kodiki-hack.ru:8080
 	CertFile string `env:"CERT_FILE" envDefault:".data/fullchain.pem"`
 	KeyFile  string `env:"KEY_FILE"  envDefault:".data/privkey.pem"`
+
+	IDLen int `env:"ID_LENGTH" envDefault:"6"`
 }
 
 // Settings

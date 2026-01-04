@@ -25,7 +25,7 @@ func (r *Service) RequestInstance(
 	resourceSpec instancerepo.ResourcesSize,
 ) (instancerepo.Instance, error) {
 	instance := instancerepo.Instance{
-		ID:              randutils.RandomString(6),
+		ID:              randutils.RandomString(r.idLen),
 		Status:          instancerepo.InstanceStatusCreating,
 		CreatedBy:       createdBy,
 		TGChatID:        tgChatID,
@@ -34,8 +34,8 @@ func (r *Service) RequestInstance(
 		CloudFolderID:   r.cloudSupplier.FolderID,
 		ResourceSize:    resourceSpec,
 	}
-	if r.proxy.URL != "" {
-		instance.ProxyURL = &r.proxy.URL
+	if r.proxyURL != "" {
+		instance.ProxyURL = &r.proxyURL
 	}
 
 	ctx = logger_utils.WithValue(ctx, "instance_id", instance.ID)
@@ -195,6 +195,8 @@ func (r *Service) waitForNekoStart(ctx context.Context, instance *instancerepo.I
 		return time.Second * 10, nil
 	}
 
+	r.proxy.AddTarget(instance.ID, &url.URL{Scheme: "http", Host: *instance.IP})
+
 	now := time.Now()
 	instance.LastHealthOk = &now
 	instance.Status = instancerepo.InstanceStatusRunning
@@ -233,8 +235,6 @@ func requireRegularReport(instance *instancerepo.Instance) bool {
 }
 
 func (r *Service) processRunning(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
-	r.proxy.SetTarget(&url.URL{Scheme: "http", Host: *instance.IP})
-
 	stats, err := r.nekosupplier.GetStats(ctx, *instance.IP, instance.SessionAPIToken)
 	if err != nil {
 		if r.restartOnErrRequired(instance) {
@@ -291,6 +291,8 @@ func (r *Service) Delete(ctx context.Context, instanceID string) error {
 }
 
 func (r *Service) processDeleting(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
+	r.proxy.DeleteTarget(instance.ID)
+
 	err := r.cloudSupplier.ComputeDeleteWaited(ctx, *instance.CloudInstanceID)
 	if err != nil {
 		return 0, errors.Wrap(err, "compute delete")

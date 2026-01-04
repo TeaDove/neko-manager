@@ -67,14 +67,22 @@ func build(ctx context.Context) (*Container, error) {
 	}
 
 	nekoSupplier := nekosupplier.New(&http.Client{Timeout: time.Second * 5})
-	nekoProxy := nekoproxy.New()
+	nekoProxy := nekoproxy.New(settings.Settings.IDLen)
 
 	bot, err := tgbotpresentation.BuildBot(settings.Settings.BotToken)
 	if err != nil {
 		return nil, errors.Wrap(err, "new bot")
 	}
 
-	managerService := managerservice.New(instanceRepo, cloudSupplier, bot, nekoSupplier, nekoProxy)
+	managerService := managerservice.New(
+		instanceRepo,
+		cloudSupplier,
+		bot,
+		nekoSupplier,
+		nekoProxy,
+		settings.Settings.ProxyURL,
+		settings.Settings.IDLen,
+	)
 
 	tgBotPresentation := tgbotpresentation.New(
 		managerService,
@@ -108,8 +116,6 @@ func main() {
 		if settings.Settings.ProxyURL == "" {
 			return
 		}
-
-		container.NekoProxy.URL = settings.Settings.ProxyURL
 
 		err = http.ListenAndServeTLS( //nolint: gosec // don't care
 			":8080",

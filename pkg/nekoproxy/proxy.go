@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -14,20 +14,53 @@ import (
 )
 
 type Proxy struct {
-	target atomic.Pointer[url.URL]
-	URL    string
+	targets   map[string]url.URL
+	targetsMU sync.RWMutex
+
+	notFound url.URL
+	idLen    int
 }
 
-func New() *Proxy {
-	proxy := &Proxy{}
-
-	proxy.SetTarget(must_utils.Must(url.Parse("https://google.com")))
+func New(idLen int) *Proxy {
+	proxy := &Proxy{
+		notFound: *must_utils.Must(url.Parse("https://google.com")),
+		targets:  make(map[string]url.URL),
+		idLen:    idLen,
+	}
 
 	return proxy
 }
 
-func (r *Proxy) SetTarget(target *url.URL) {
-	r.target.Store(target)
+func (r *Proxy) AddTarget(id string, target *url.URL) {
+	r.targetsMU.Lock()
+	defer r.targetsMU.Unlock()
+
+	r.targets[id] = *target
+}
+
+func (r *Proxy) DeleteTarget(path string) {
+	r.targetsMU.Lock()
+	defer r.targetsMU.Unlock()
+
+	delete(r.targets, path)
+}
+
+func (r *Proxy) getTarget(path string) *url.URL {
+	if len(path) < r.idLen+1 {
+		return &r.notFound
+	}
+
+	id := path[1 : r.idLen+1]
+
+	r.targetsMU.RLock()
+	defer r.targetsMU.RUnlock()
+
+	target, ok := r.targets[id]
+	if !ok {
+		return &r.notFound
+	}
+
+	return &target
 }
 
 func (r *Proxy) MakeSTDProxy(ctx context.Context) *httputil.ReverseProxy {
@@ -35,7 +68,7 @@ func (r *Proxy) MakeSTDProxy(ctx context.Context) *httputil.ReverseProxy {
 
 	reverseProxy := httputil.ReverseProxy{
 		Director: func(req *http.Request) {
-			rewriteRequestURL(req, r.target.Load())
+			rewriteRequestURL(req, r.getTarget(req.URL.Path))
 		},
 		Transport: &http.Transport{
 			Proxy:                 http.ProxyFromEnvironment,
