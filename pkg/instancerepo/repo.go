@@ -38,7 +38,11 @@ func (r *Repo) GetInstance(ctx context.Context, id string) (*Instance, error) {
 }
 
 func (r *Repo) ListActiveInstances(ctx context.Context) ([]Instance, error) {
-	instances, err := gorm.G[Instance](r.db).Where("status != ?", InstanceStatusDeleted).Find(ctx)
+	instances, err := gorm.G[Instance](
+		r.db,
+	).Where("status != ?", InstanceStatusDeleted).
+		Order("created_at desc").
+		Find(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "list active instances")
 	}
