@@ -24,8 +24,9 @@ func (r *Service) RequestInstance(
 	createdBy string,
 	resourceSpec instancerepo.ResourcesSize,
 ) (instancerepo.Instance, error) {
+	id := randutils.RandomString(r.idLen)
 	instance := instancerepo.Instance{
-		ID:              randutils.RandomString(r.idLen),
+		ID:              id,
 		Status:          instancerepo.InstanceStatusCreating,
 		CreatedBy:       createdBy,
 		TGChatID:        tgChatID,
@@ -33,12 +34,10 @@ func (r *Service) RequestInstance(
 		SessionAPIToken: rand.Text(),
 		CloudFolderID:   r.cloudSupplier.FolderID,
 		ResourceSize:    resourceSpec,
-	}
-	if r.proxyURL != "" {
-		instance.ProxyURL = &r.proxyURL
+		ProxyURL:        r.proxy.GetProxyURL(id),
 	}
 
-	ctx = logger_utils.WithValue(ctx, "instance_id", instance.ID)
+	ctx = logger_utils.WithValue(ctx, "instance_id", id)
 
 	err := r.instanceRepo.SaveInstance(ctx, &instance)
 	if err != nil {

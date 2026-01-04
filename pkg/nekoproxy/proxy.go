@@ -2,6 +2,7 @@ package nekoproxy
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -19,16 +20,29 @@ type Proxy struct {
 
 	notFound url.URL
 	idLen    int
+
+	baseURL string
 }
 
-func New(idLen int) *Proxy {
+func New(idLen int, baseURL string) *Proxy {
 	proxy := &Proxy{
 		notFound: *must_utils.Must(url.Parse("https://google.com")),
 		targets:  make(map[string]url.URL),
 		idLen:    idLen,
+		baseURL:  baseURL,
 	}
 
 	return proxy
+}
+
+func (r *Proxy) GetProxyURL(id string) *string {
+	if r.baseURL == "" {
+		return nil
+	}
+
+	proxyURL := fmt.Sprintf("%s/%s", r.baseURL, id)
+
+	return &proxyURL
 }
 
 func (r *Proxy) AddTarget(id string, target *url.URL) {

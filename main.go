@@ -67,7 +67,7 @@ func build(ctx context.Context) (*Container, error) {
 	}
 
 	nekoSupplier := nekosupplier.New(&http.Client{Timeout: time.Second * 5})
-	nekoProxy := nekoproxy.New(settings.Settings.IDLen)
+	nekoProxy := nekoproxy.New(settings.Settings.IDLen, settings.Settings.ProxyURL)
 
 	bot, err := tgbotpresentation.BuildBot(settings.Settings.BotToken)
 	if err != nil {
@@ -80,7 +80,6 @@ func build(ctx context.Context) (*Container, error) {
 		bot,
 		nekoSupplier,
 		nekoProxy,
-		settings.Settings.ProxyURL,
 		settings.Settings.IDLen,
 	)
 

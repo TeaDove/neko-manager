@@ -14,7 +14,7 @@ func TestGetTarget(t *testing.T) {
 	t.Parallel()
 
 	idLen := 6
-	r := New(idLen)
+	r := New(idLen, "http://localhost:8080")
 
 	id1 := randutils.RandomString(idLen)
 	id2 := randutils.RandomString(idLen)
