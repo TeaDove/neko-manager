@@ -77,6 +77,11 @@ func (r *Service) HandleInstance(instance *instancerepo.Instance) {
 		Object("instance", instance).
 		Msg("instance.handling.started")
 
+	// Handling begun after restart
+	if instance.Status == instancerepo.InstanceStatusRunning {
+		r.registerInProxy(instance)
+	}
+
 	var (
 		err error
 	)
@@ -178,6 +183,10 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 	)
 }
 
+func (r *Service) registerInProxy(instance *instancerepo.Instance) {
+	r.proxy.AddTarget(instance.ID, &url.URL{Scheme: "http", Host: *instance.IP})
+}
+
 func (r *Service) waitForNekoStart(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
 	_, err := r.nekosupplier.GetStats(ctx, instance.ToSupplierDTO())
 	if err != nil {
@@ -194,7 +203,7 @@ func (r *Service) waitForNekoStart(ctx context.Context, instance *instancerepo.I
 		return time.Second * 10, nil
 	}
 
-	r.proxy.AddTarget(instance.ID, &url.URL{Scheme: "http", Host: *instance.IP})
+	r.registerInProxy(instance)
 
 	now := time.Now()
 	instance.LastHealthOk = &now
