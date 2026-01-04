@@ -2,7 +2,6 @@ package nekoproxy
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -35,14 +34,12 @@ func New(idLen int, baseURL string) *Proxy {
 	return proxy
 }
 
-func (r *Proxy) GetProxyURL(id string) *string {
+func (r *Proxy) GetProxyURL() *string {
 	if r.baseURL == "" {
 		return nil
 	}
 
-	proxyURL := fmt.Sprintf("%s/%s", r.baseURL, id)
-
-	return &proxyURL
+	return &r.baseURL
 }
 
 func (r *Proxy) AddTarget(id string, target *url.URL) {

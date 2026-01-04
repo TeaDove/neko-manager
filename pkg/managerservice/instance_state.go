@@ -34,7 +34,7 @@ func (r *Service) RequestInstance(
 		SessionAPIToken: rand.Text(),
 		CloudFolderID:   r.cloudSupplier.FolderID,
 		ResourceSize:    resourceSpec,
-		ProxyURL:        r.proxy.GetProxyURL(id),
+		ProxyURL:        r.proxy.GetProxyURL(),
 	}
 
 	ctx = logger_utils.WithValue(ctx, "instance_id", id)
