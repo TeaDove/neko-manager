@@ -57,7 +57,8 @@ func (r *Supplier) doRequest(ctx context.Context, instance *Instance, path strin
 	req, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodGet,
-		fmt.Sprintf("http://%s/%s%s", instance.IP, instance.ID, path),
+		fmt.Sprintf("http://%s%s", instance.IP, path),
+		// fmt.Sprintf("http://%s/%s%s", instance.IP, instance.ID, path),
 		nil,
 	)
 	if err != nil {
