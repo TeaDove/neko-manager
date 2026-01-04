@@ -46,7 +46,7 @@ func (r *Service) MakeTGReport(
 		screenshot []byte
 	)
 	if withStats && instance.IP != nil {
-		stats, err := r.nekosupplier.GetStats(ctx, *instance.IP, instance.SessionAPIToken)
+		stats, err := r.nekosupplier.GetStats(ctx, instance.ToSupplierDTO())
 		if err == nil {
 			statsPtr = &stats
 		} else {
@@ -55,7 +55,7 @@ func (r *Service) MakeTGReport(
 				Msg("failed.to.get.stats")
 		}
 
-		screenshot, err = r.nekosupplier.GetScreenshot(ctx, *instance.IP, instance.SessionAPIToken)
+		screenshot, err = r.nekosupplier.GetScreenshot(ctx, instance.ToSupplierDTO())
 		if err != nil {
 			zerolog.Ctx(ctx).Error().
 				Stack().Err(err).

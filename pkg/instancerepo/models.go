@@ -34,6 +34,14 @@ type Instance struct {
 	ResourceSize    ResourcesSize `gorm:"not null;type:string"`
 }
 
+func (r *Instance) ToSupplierDTO() *nekosupplier.Instance {
+	return &nekosupplier.Instance{
+		ID:              r.ID,
+		SessionAPIToken: r.SessionAPIToken,
+		IP:              *r.IP,
+	}
+}
+
 func (r *Instance) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("id", r.ID).
 		Stringer("status", r.Status)
@@ -91,7 +99,7 @@ func (s InstanceStatus) EmojiStatus() string {
 	switch s {
 	case InstanceStatusRunning:
 		emoji = "✅"
-	case InstanceStatusDeleting:
+	case InstanceStatusDeleting, InstanceStatusDeleted:
 		emoji = "❌"
 	default:
 		emoji = "⚠️"

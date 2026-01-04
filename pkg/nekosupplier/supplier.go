@@ -19,6 +19,12 @@ func New(client *http.Client) *Supplier {
 	return &Supplier{client: client}
 }
 
+type Instance struct {
+	ID              string
+	SessionAPIToken string
+	IP              string
+}
+
 type Stats struct {
 	HasHost         bool      `json:"has_host"`
 	HostId          string    `json:"host_id,omitempty"`
@@ -47,13 +53,18 @@ func (r *Stats) LastUsageAt() time.Time {
 	return lastUsage
 }
 
-func (r *Supplier) doRequest(ctx context.Context, ip string, sessionAPIToken string, path string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://%s%s", ip, path), nil)
+func (r *Supplier) doRequest(ctx context.Context, instance *Instance, path string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf("http://%s/%s%s", instance.IP, instance.ID, path),
+		nil,
+	)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	req.Header.Add("Authorization", "Bearer "+sessionAPIToken)
+	req.Header.Add("Authorization", "Bearer "+instance.SessionAPIToken)
 
 	resp, err := r.client.Do(req)
 	if err != nil {
@@ -69,8 +80,8 @@ func (r *Supplier) doRequest(ctx context.Context, ip string, sessionAPIToken str
 	return io.ReadAll(resp.Body)
 }
 
-func (r *Supplier) GetStats(ctx context.Context, ip string, sessionAPIToken string) (Stats, error) {
-	body, err := r.doRequest(ctx, ip, sessionAPIToken, "/api/stats")
+func (r *Supplier) GetStats(ctx context.Context, instance *Instance) (Stats, error) {
+	body, err := r.doRequest(ctx, instance, "/api/stats")
 	if err != nil {
 		return Stats{}, errors.Wrap(err, "/api/stats")
 	}
@@ -89,8 +100,8 @@ func (r *Supplier) GetStats(ctx context.Context, ip string, sessionAPIToken stri
 	return stats, nil
 }
 
-func (r *Supplier) GetScreenshot(ctx context.Context, ip string, sessionAPIToken string) ([]byte, error) {
-	body, err := r.doRequest(ctx, ip, sessionAPIToken, "/api/room/screen/shot.jpg")
+func (r *Supplier) GetScreenshot(ctx context.Context, instance *Instance) ([]byte, error) {
+	body, err := r.doRequest(ctx, instance, "/api/room/screen/shot.jpg")
 	if err != nil {
 		return nil, errors.Wrap(err, "/api/room/screen/shot.jpg")
 	}

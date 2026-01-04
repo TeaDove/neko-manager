@@ -179,7 +179,7 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 }
 
 func (r *Service) waitForNekoStart(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
-	_, err := r.nekosupplier.GetStats(ctx, *instance.IP, instance.SessionAPIToken)
+	_, err := r.nekosupplier.GetStats(ctx, instance.ToSupplierDTO())
 	if err != nil {
 		if r.restartOnErrRequired(instance) {
 			instance.Status = instancerepo.InstanceStatusRestarting
@@ -234,7 +234,7 @@ func requireRegularReport(instance *instancerepo.Instance) bool {
 }
 
 func (r *Service) processRunning(ctx context.Context, instance *instancerepo.Instance) (time.Duration, error) {
-	stats, err := r.nekosupplier.GetStats(ctx, *instance.IP, instance.SessionAPIToken)
+	stats, err := r.nekosupplier.GetStats(ctx, instance.ToSupplierDTO())
 	if err != nil {
 		if r.restartOnErrRequired(instance) {
 			instance.Status = instancerepo.InstanceStatusRestarting
