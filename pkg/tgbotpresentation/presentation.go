@@ -10,8 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/teasutils/service_utils/logger_utils"
-	"github.com/teadove/teasutils/utils/redact_utils"
+	"github.com/teadove/teasutils/telebot_utils"
 	tele "gopkg.in/telebot.v4"
 	"gopkg.in/telebot.v4/middleware"
 )
@@ -39,40 +38,11 @@ func New(
 	}
 }
 
-func GetOrSetCtx(c tele.Context) context.Context {
-	ctx, ok := c.Get("ctx").(context.Context)
-	if ok {
-		return ctx
-	}
-
-	ctx = logger_utils.NewLoggedCtx()
-	if c.Chat() != nil && c.Chat().Title != "" {
-		ctx = logger_utils.WithValue(ctx, "in", c.Chat().Title)
-	}
-
-	if c.Text() != "" {
-		ctx = logger_utils.WithValue(ctx, "text", redact_utils.Trim(c.Text()))
-	}
-
-	if c.Sender() != nil {
-		ctx = logger_utils.WithValue(ctx, "from", c.Sender().Username)
-	}
-
-	c.Set("ctx", ctx)
-
-	return ctx
-}
-
 func BuildBot(token string) (*tele.Bot, error) {
 	bot, err := tele.NewBot(tele.Settings{
 		Token:     token,
 		ParseMode: tele.ModeHTML,
-		OnError: func(err error, c tele.Context) {
-			zerolog.Ctx(GetOrSetCtx(c)).
-				Error().
-				Stack().Err(err).
-				Msg("failed.to.process.tg.update")
-		},
+		OnError:   telebot_utils.ReportOnErr,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "new terx bot")
@@ -114,7 +84,11 @@ func (r *Presentation) cmdRequest(c tele.Context) error {
 	if len(c.Args()) != 0 {
 		resourceSize, err = instancerepo.ParseResourcesSize(c.Args()[0])
 		if err != nil {
-			return c.Reply("Wrong resource size, allowed are: " + strings.Join(instancerepo.ResourcesSizeNames(), ", "))
+			return telebot_utils.NewClientError(
+				errors.New(
+					"wrong resource size, allowed are: " + strings.Join(instancerepo.ResourcesSizeNames(), ", "),
+				),
+			)
 		}
 	}
 
@@ -125,7 +99,13 @@ func (r *Presentation) cmdRequest(c tele.Context) error {
 		threadId = &threadIdV
 	}
 
-	_, err = r.managerService.RequestInstance(GetOrSetCtx(c), c.Chat().ID, threadId, c.Sender().Username, resourceSize)
+	_, err = r.managerService.RequestInstance(
+		telebot_utils.GetOrSetCtx(c),
+		c.Chat().ID,
+		threadId,
+		c.Sender().Username,
+		resourceSize,
+	)
 	if err != nil {
 		return errors.Wrap(err, "request instance")
 	}
@@ -134,7 +114,7 @@ func (r *Presentation) cmdRequest(c tele.Context) error {
 }
 
 func (r *Presentation) cmdList(c tele.Context) error {
-	ctx := GetOrSetCtx(c)
+	ctx := telebot_utils.GetOrSetCtx(c)
 
 	instances, err := r.managerService.ListInstances(ctx)
 	if err != nil {
@@ -162,12 +142,12 @@ func (r *Presentation) cmdList(c tele.Context) error {
 
 func (r *Presentation) cmdDelete(c tele.Context) error {
 	if len(c.Args()) != 1 {
-		return c.Reply("Usage: /delete <id>", tele.ModeDefault)
+		return telebot_utils.NewClientError(errors.New("Usage: /delete <id>"))
 	}
 
 	instanceID := c.Args()[0]
 
-	err := r.managerService.Delete(GetOrSetCtx(c), instanceID)
+	err := r.managerService.Delete(telebot_utils.GetOrSetCtx(c), instanceID)
 	if err != nil {
 		return errors.Wrap(err, "delete instance")
 	}

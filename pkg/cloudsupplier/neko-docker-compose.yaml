@@ -1,6 +1,6 @@
 services:
   neko:
-    image: "ghcr.io/m1k1o/neko/chromium:latest"
+    image: "ghcr.io/m1k1o/neko/chromium:3.0.9"
     restart: "unless-stopped"
 #    shm_size: "4gb"
     ports:
