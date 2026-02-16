@@ -16,7 +16,7 @@ import (
 
 type Instance struct {
 	ID        string    `gorm:"primaryKey"`
-	CreatedAt time.Time `gorm:"not null;autoCreateTime;not null"`
+	CreatedAt time.Time `gorm:"not null;autoCreateTime"`
 
 	LastHealthOk *time.Time
 	UpdatedAt    time.Time      `gorm:"not null;autoUpdateTime"`

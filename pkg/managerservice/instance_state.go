@@ -171,8 +171,7 @@ func (r *Service) createInstance(ctx context.Context, instance *instancerepo.Ins
 		return time.Second * 3, nil
 	}
 
-	ip := address.String()
-	instance.IP = &ip
+	instance.IP = new(address.String())
 	instance.Status = instancerepo.InstanceStatusStarted
 
 	return 0, r.saveAndReportInstance(

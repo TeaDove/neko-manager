@@ -45,6 +45,7 @@ func (r *Service) MakeTGReport(
 		statsPtr   *nekosupplier.Stats
 		screenshot []byte
 	)
+
 	if withStats && instance.IP != nil {
 		stats, err := r.nekosupplier.GetStats(ctx, instance.ToSupplierDTO())
 		if err == nil {

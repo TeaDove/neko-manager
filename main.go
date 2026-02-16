@@ -49,7 +49,7 @@ func build(ctx context.Context) (*Container, error) {
 	instanceRepo := instancerepo.New(db)
 
 	sdk, err := ycsdk.Build(ctx,
-		options.WithCredentials(credentials.OAuthToken(settings.Settings.YCOauthToken)),
+		options.WithCredentials(credentials.OAuthToken(settings.Settings.YCOauthToken)), //nolint: staticcheck // FIXME
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "ycsdk build")
